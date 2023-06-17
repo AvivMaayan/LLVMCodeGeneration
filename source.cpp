@@ -4,6 +4,48 @@ extern int yylineno;
 extern SymbolTable symbolTable;
 extern CodeBuffer &buffer;
 
+BinOp::BinOp(const string op)
+{
+    if (op == "+")
+        this->opType = BinOp::OpTypes::OP_ADDITION;
+    else if (op == "-")
+        this->opType = BinOp::OpTypes::OP_SUBTRACTION;
+    else if (op == "*")
+        this->opType = BinOp::OpTypes::OP_MULTIPLICATION;
+    else if (op == "/")
+        this->opType = BinOp::OpTypes::OP_DIVISION;
+    else
+        exit(1);
+}
+
+RelOp::RelOp(const string op)
+{
+    if (op == "==")
+        this->opType = RelOp::OpTypes::OP_EQUAL;
+    else if (op == "!=")
+        this->opType = RelOp::OpTypes::OP_NOT_EQUAL;
+    else if (op == ">")
+        this->opType = RelOp::OpTypes::OP_GREATER_THAN;
+    else if (op == "<")
+        this->opType = RelOp::OpTypes::OP_LESS_THAN;
+    else if (op == ">=")
+        this->opType = RelOp::OpTypes::OP_GREATER_EQUAL;
+    else if (op == "<=")
+        this->opType = RelOp::OpTypes::OP_LESS_EQUAL;
+    else
+        exit(1);
+}
+
+BoolOp::BoolOp(const string op)
+{
+    if (op == "and")
+        this->opType = BoolOp::OpTypes::OP_AND;
+    else if (op == "or")
+        this->opType = BoolOp::OpTypes::OP_OR;
+    else
+        exit(1);
+}
+
 Exp::Exp(const string type, const string value)
     : Node(type), value(value)
 {
@@ -28,6 +70,10 @@ Exp::Exp(const RawNumber *num, const string type)
     }
 
     this->value = stoi(num->value);
+
+    // Since this is a constant number, no register is needed and
+    // we can abuse the reg member to store the value itself
+    this->reg = num->value;
 }
 
 Exp::Exp(const Exp *bool_exp)
@@ -48,7 +94,29 @@ Exp::Exp(const Exp *left_exp, const BinOp *op, const Exp *right_exp)
     }
 
     this->type = (left_exp->type == "int" || right_exp->type == "int") ? "int" : "byte";
-    // Actual value is not needed....
+
+    this->reg = buffer.genReg();
+
+    string op_code;
+    switch (op->opType)
+    {
+    case BinOp::OpTypes::OP_ADDITION:
+        op_code = "add";
+        break;
+    case BinOp::OpTypes::OP_SUBTRACTION:
+        op_code = "sub";
+        break;
+    case BinOp::OpTypes::OP_MULTIPLICATION:
+        op_code = "mul";
+        break;
+    case BinOp::OpTypes::OP_DIVISION:
+        /** @todo: address udiv or sdiv */
+        op_code = "div";
+        break;
+    }
+
+    string code = this->reg + " = " + op_code + " i32 " + left_exp->reg + ", " + right_exp->reg;
+    buffer.emit(code);
 }
 
 Exp::Exp(const Exp *left_exp, const BoolOp *op, const Exp *right_exp)
@@ -72,7 +140,36 @@ Exp::Exp(const Exp *left_exp, const RelOp *op, const Exp *right_exp)
         exit(1);
     }
 
-    // Actual value is not needed....
+    this->reg = buffer.genReg();
+
+    string op_code;
+    switch (op->opType)
+    {
+    case RelOp::OpTypes::OP_EQUAL:
+        op_code = "eq";
+        break;
+    case RelOp::OpTypes::OP_NOT_EQUAL:
+        op_code = "ne";
+        break;
+    case RelOp::OpTypes::OP_GREATER_THAN:
+        op_code = "sgt";
+        break;
+    case RelOp::OpTypes::OP_LESS_THAN:
+        op_code = "slt";
+        break;
+    case RelOp::OpTypes::OP_GREATER_EQUAL:
+        op_code = "sge";
+        break;
+    case RelOp::OpTypes::OP_LESS_EQUAL:
+        op_code = "sle";
+        break;
+    }
+
+    string compare_code = this->reg + " = icmp " + op_code + " i32 " + left_exp->reg + ", " + right_exp->reg;
+    buffer.emit(compare_code);
+    int address = buffer.emit("br i1 " + this->reg + ", label @, label @");
+    this->true_list = buffer.makelist(LabelLocation(address, FIRST));
+    this->false_list = buffer.makelist(LabelLocation(address, SECOND));
 }
 
 Exp::Exp(const Type *new_type, const Exp *exp)

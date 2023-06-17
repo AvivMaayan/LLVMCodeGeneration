@@ -56,7 +56,17 @@ public:
 class BinOp : public Node
 {
 public:
-    BinOp(const string type) : Node(type) {}
+    enum
+    {
+        OP_ADDITION,
+        OP_SUBTRACTION,
+        OP_MULTIPLICATION,
+        OP_DIVISION,
+    } typedef OpTypes;
+
+    BinOp::OpTypes opType;
+
+    BinOp(const string op);
 
     virtual ~BinOp() = default;
 };
@@ -64,7 +74,19 @@ public:
 class RelOp : public Node
 {
 public:
-    RelOp(const string type) : Node(type) {}
+    enum
+    {
+        OP_EQUAL,
+        OP_NOT_EQUAL,
+        OP_GREATER_THAN,
+        OP_LESS_THAN,
+        OP_GREATER_EQUAL,
+        OP_LESS_EQUAL,
+    } typedef OpTypes;
+
+    RelOp::OpTypes opType;
+
+    RelOp(const string op);
 
     virtual ~RelOp() = default;
 };
@@ -72,7 +94,15 @@ public:
 class BoolOp : public Node
 {
 public:
-    BoolOp(const string type) : Node(type) {}
+    enum
+    {
+        OP_AND,
+        OP_OR
+    } typedef OpTypes;
+
+    BoolOp::OpTypes opType;
+
+    BoolOp(const string op);
 
     virtual ~BoolOp() = default;
 };
@@ -102,6 +132,10 @@ private:
 
 public:
     string value;
+    string reg;
+    string code;
+    vector<LabelLocation> true_list;
+    vector<LabelLocation> false_list;
 
     Exp(const string type, const string value);
 
