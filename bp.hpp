@@ -17,18 +17,25 @@ enum BranchLabelIndex
 class CodeBuffer
 {
     CodeBuffer();
-    CodeBuffer(CodeBuffer const &);
+    CodeBuffer(CodeBuffer const &) = delete;
     void operator=(CodeBuffer const &);
     std::vector<std::string> buffer;
     std::vector<std::string> globalDefs;
 
+    int regCounter;
+
 public:
+    // With the Singleton design pattern, the single instance of CodeBuffer could be accessed using:
+    // CodeBuffer &buffer = CodeBuffer::instance();
     static CodeBuffer &instance();
 
     // ******** Methods to handle the code section ******** //
 
     // generates a jump location label for the next command, writes it to the buffer and returns it
     std::string genLabel();
+
+    // helper function that returns (the name of) a fresh variable
+    std::string genReg();
 
     // writes command to the buffer, returns its location in the buffer
     int emit(const std::string &command);
@@ -63,6 +70,9 @@ public:
     void emitGlobal(const string &dataLine);
     // print the content of the global buffer to stdout
     void printGlobalBuffer();
+
+    // To test our code generation
+    void testBuffer();
 };
 
 #endif

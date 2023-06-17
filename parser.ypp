@@ -2,9 +2,13 @@
     #include "hw3_output.hpp"
     #include "source.hpp"
     #include "symbol_table_intf.h"
+    #include "bp.hpp"
+
     extern int yylineno;
     extern int yylex();
     extern SymbolTable symbolTable;
+    extern CodeBuffer &buffer;
+
     int yyerror(const char* error);
 
     using namespace output;
@@ -146,10 +150,13 @@ Exp: LPAREN Exp RPAREN                                              {$$ = new Ex
 %%
 
 SymbolTable symbolTable = SymbolTable();
+CodeBuffer &buffer = CodeBuffer::instance();
 
 int main()
 {
-    return yyparse();
+    int parse_rc = yyparse();
+    buffer.testBuffer();
+    return parse_rc;
 }
 
 int yyerror(const char * error){

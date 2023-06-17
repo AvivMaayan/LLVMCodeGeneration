@@ -1,9 +1,8 @@
 #include "source.hpp"
-#include "hw3_output.hpp"
-#include "symbol_table_intf.h"
 
 extern int yylineno;
 extern SymbolTable symbolTable;
+extern CodeBuffer &buffer;
 
 Exp::Exp(const string type, const string value)
     : Node(type), value(value)

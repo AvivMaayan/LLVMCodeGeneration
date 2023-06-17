@@ -1,0 +1,3 @@
+void main() {
+	int life = 42;
+}

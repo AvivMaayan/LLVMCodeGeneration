@@ -5,6 +5,9 @@
 #include <iostream>
 #include <assert.h>
 
+#include "hw3_output.hpp"
+#include "symbol_table_intf.h"
+#include "bp.hpp"
 
 using std::string;
 using std::vector;

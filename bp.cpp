@@ -6,10 +6,10 @@ using namespace std;
 
 bool replace(string& str, const string& from, const string& to, const BranchLabelIndex index);
 
-CodeBuffer::CodeBuffer() : buffer(), globalDefs() {}
+CodeBuffer::CodeBuffer() : buffer(), globalDefs(), regCounter(0) {}
 
 CodeBuffer &CodeBuffer::instance() {
-    static CodeBuffer inst;//only instance
+    static CodeBuffer inst; // Only instance
     return inst;
 }
 
@@ -21,6 +21,11 @@ string CodeBuffer::genLabel(){
     label << ":";
     emit(label.str());
     return ret;
+}
+
+string CodeBuffer::genReg()
+{
+    return "%var_" + std::to_string(regCounter++);;
 }
 
 int CodeBuffer::emit(const string &s){
@@ -84,4 +89,15 @@ bool replace(string& str, const string& from, const string& to, const BranchLabe
         return false;
     str.replace(pos, from.length(), to);
     return true;
+}
+
+void CodeBuffer::testBuffer()
+{
+    cout << "\n\n**** Buffer Testing ****\n\n";
+    for(int i=0; i<5; ++i)
+    {
+        string fresh_reg = genReg();
+        emit(fresh_reg);
+    }
+    printCodeBuffer();
 }
