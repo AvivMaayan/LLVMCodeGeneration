@@ -14,6 +14,8 @@ enum BranchLabelIndex
     SECOND
 };
 
+typedef pair<int, BranchLabelIndex> LabelLocation;
+
 class CodeBuffer
 {
     CodeBuffer();
@@ -35,16 +37,16 @@ public:
     std::string genLabel();
 
     // helper function that returns (the name of) a fresh variable
-    std::string genReg();
+    std::string genReg(bool isGlobal = false);
 
     // writes command to the buffer, returns its location in the buffer
     int emit(const std::string &command);
 
     // gets a pair<int,BranchLabelIndex> item of the form {buffer_location, branch_label_index} and creates a list for it
-    static vector<pair<int, BranchLabelIndex>> makelist(pair<int, BranchLabelIndex> item);
+    static vector<LabelLocation> makelist(LabelLocation item);
 
     // merges two lists of {buffer_location, branch_label_index} items
-    static vector<pair<int, BranchLabelIndex>> merge(const vector<pair<int, BranchLabelIndex>> &l1, const vector<pair<int, BranchLabelIndex>> &l2);
+    static vector<LabelLocation> merge(const vector<LabelLocation> &l1, const vector<LabelLocation> &l2);
 
     /* accepts a list of {buffer_location, branch_label_index} items and a label.
     For each {buffer_location, branch_label_index} item in address_list, backpatches the branch command
@@ -60,7 +62,7 @@ public:
     bpatch(makelist({loc2,SECOND}),"my_false_label"); - location loc2 in the buffer will now contain the command "br i1 %cond, label @, label %my_false_label"
     bpatch(makelist({loc2,FIRST}),"my_true_label"); - location loc2 in the buffer will now contain the command "br i1 %cond, label @my_true_label, label %my_false_label"
     */
-    void bpatch(const vector<pair<int, BranchLabelIndex>> &address_list, const std::string &label);
+    void bpatch(const vector<LabelLocation> &address_list, const std::string &label);
 
     // prints the content of the code buffer to stdout
     void printCodeBuffer();
