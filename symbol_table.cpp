@@ -138,19 +138,27 @@ void SymbolTable::pushScope(bool isLoop, string returnType)
 {
     /* Allocate a new empty Scope*/
     PScope scope = new Scope(isLoop, returnType);
-    /* push the scope to the stack*/
-    m_scopes.push_back(scope);
+    string rbp; 
+    /* Handling for the first Scope inserted*/
     if (m_offsets.empty())
     {
         /* Start the first scope with 0 offset*/
         m_offsets.push(0);
+        /* Address is empty for the first rbp*/
+        rbp = "";
     }
     else
     {
         /* Duplicate the offset at the top of the offsets stack*/
         int offset = m_offsets.top();
         m_offsets.push(offset);
+        /* Address for the next rbp is the last one in the m_scopes vec*/
+        rbp = m_scopes.back()->m_rbp;
     }
+    /* Update to correct rbp*/
+    scope->m_rbp = rbp;
+    /* push the scope to the stack*/
+    m_scopes.push_back(scope);
 }
 
 void SymbolTable::popScope()
@@ -295,22 +303,6 @@ string SymbolTable::getSymbolType(const string name)
     }
     return "";
 }
-
-// string SymbolTable::getSymbolReturnType(const string name, const vector<string> &parametersTypes)
-// {
-//     PSymbol pSymbol;
-//     /* Search all scopes one at a time from the begining*/
-//     for (auto it = m_scopes.begin(); it != m_scopes.end(); it++)
-//     {
-//         /* (*it) is the current scope. Try to get the symbol from the scope.*/
-//         if ((*it)->getFuncSymbol(name, parametersTypes, &pSymbol))
-//         {
-//             /* we found it*/
-//             return pSymbol->m_returnType;
-//         }
-//     }
-//     return "";
-// }
 
 string SymbolTable::getClosestReturnType()
 {

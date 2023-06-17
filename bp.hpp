@@ -73,6 +73,34 @@ public:
 
     // To test our code generation
     void testBuffer();
+
+    /** Methods for creating and getting addresses of varibales in the stack*/
+    
+    /**
+     * Alloc a new register to possess the address on the stack of the variable
+     * located in the specific offset after the rbp address of the scope. 
+     * @param rbp the base address of the scope
+     * @param offset the offset (positive) from this base address
+     *
+     * @return the name of the register with the address inside of it 
+    */
+    string loadVaribale(string rbp, int offset);
+
+    /**
+     * Store a new variable in the offset address on the stack after rbp, identified
+     * with "reg" name. 
+     * @param rbp the base address of the scope  
+     * @param offset the offset (positive) from this base address
+     * @param reg the name of the register to use for storing the value
+    */
+    void storeVariable(string rbp, int offset, string reg);
+    
+    /**
+     * Alloc a new register and emit a line stating this register holds the
+     * address of the new base pointer to use (the rbp)
+     * @return the name of the register holding the rbp value
+    */
+    string allocFunctionRbp();
 };
 
 #endif

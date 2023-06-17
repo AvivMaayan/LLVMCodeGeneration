@@ -101,3 +101,32 @@ void CodeBuffer::testBuffer()
     }
     printCodeBuffer();
 }
+
+string CodeBuffer::loadVaribale(string rbp, int offset)
+{
+    string reg = genReg();
+    string varPtr = genReg();
+    /* get the pointer to the correct address within the register varPtr*/
+    emit(varPtr + " = getelementptr i32, i32* " + rbp + ", i32 " + std::to_string(offset));
+    /* insert the value within the address to the new register*/
+    emit(reg + " = load i32, i32* " + varPtr);
+    return reg;
+}
+
+void CodeBuffer::storeVariable(string rbp, int offset, string reg)
+{
+    string varPtr = genReg();
+    /* get the pointer to the correct address within the register varPtr*/
+    emit(varPtr + " = getelementptr i32, i32* " + rbp + ", i32 " + std::to_string(offset));
+    /* store in the memory*/
+    emit("store i32 " + reg + ", i32* " + varPtr);
+}
+
+string CodeBuffer::allocFunctionRbp()
+{
+    string rbp = genReg();
+    /* allocate memory for 50 variables on the stack, this is the new
+    base ptr for the function that is declared (outside)*/
+    emit(rbp + " = alloca i32, i32 50");
+    return rbp;
+}

@@ -1,3 +1,7 @@
 .vscode/
 hw5-tests/
 llvm_examples/
+COMPI_HW5-main/
+parser.tab.*
+hw5
+lex.yy.*

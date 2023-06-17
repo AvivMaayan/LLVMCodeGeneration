@@ -7,9 +7,9 @@
 #include <stack>
 #include "hw3_output.hpp"
 /* Using sttmnts for easy reding this document*/
+using std::map;
 using std::stack;
 using std::string;
-using std::map;
 using std::vector;
 
 /* Symbol class - this class represents a symbol in the symbol table*/
@@ -78,12 +78,12 @@ class Scope
 public:
     /*default c'tor and d'tor since the values aren't known yet*/
     Scope(bool isLoop, string returnType = "") : m_symbols(),
-                                                 m_isLoop(isLoop), 
+                                                 m_isLoop(isLoop),
                                                  m_returnType(returnType){};
 
     ~Scope();
 
-    string getReturnType() { return m_returnType;};
+    string getReturnType() { return m_returnType; };
 
     /**
      * Insert a symbol to the Scope. No checks are preformed so assumes it is supposed to be inserted.
@@ -129,15 +129,19 @@ public:
      */
     void printScope();
 
+    /*******************MEMBERS**************************/
+    /* Public members since this class is used only by the SymbolTable class*/
+
     /* The symbols of this scope is a HT of the symbols in the scope.
      * key == name of the symbol
      * PSymbol == ptr to the symbol located in the cell*/
     vector<PSymbol> m_symbols;
-private:
     /* boolean stating if this scope is a loop*/
     bool m_isLoop;
     /* the return type of the scope - gets a value only if this is a function scope*/
     string m_returnType;
+    /* the name of the register holding the rbp of this scope*/
+    string m_rbp;
 };
 using PScope = Scope *;
 
@@ -197,25 +201,25 @@ public:
     bool isFuncSymbolExist(const string name, const vector<string> &parametersTypes);
 
     /**
-     * Go over all of the scopes: 
-     * Look for any function named "name" that there is an EXACT type match of the 
+     * Go over all of the scopes:
+     * Look for any function named "name" that there is an EXACT type match of the
      * given parametersTypes to its arguments.
      * @param name name of the function
      * @param parametersTypes the types of the declaration
      * @return vector<string> all of the return types of the suitable functions
      *         empty vector if no func allowed
-    */
+     */
     vector<string> getFuncDeclReturnTypes(const string name, const vector<string> &parametersTypes);
 
     /**
-     * Go over all of the scopes: 
-     * Look for any function named "name" that there is a possible assignment of the 
+     * Go over all of the scopes:
+     * Look for any function named "name" that there is a possible assignment of the
      * given parametersTypes to its arguments.
      * @param name name of the function in the call
      * @param parametersTypes types in the call
      * @return vector<string> all of the return types of the suitable functions
      *         empty vector if no func allowed
-    */
+     */
     vector<string> getLegalCallReturnTypes(const string name, const vector<string> &parametersTypes);
 
     /**
@@ -256,6 +260,7 @@ public:
     static bool checkTypes(string leftType, string rightType);
 
     void checkMain();
+
 private:
     /* Vector of all of the scopes so far*/
     vector<PScope> m_scopes;
