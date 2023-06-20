@@ -278,6 +278,6 @@ class MarkerN : public Node
 public:
     MarkerN(Exp* exp);
     virtual ~MarkerN() = default;
-    vector<LabelLocation> nextList; 
+    vector<LabelLocation> next_list; 
 };
 #endif

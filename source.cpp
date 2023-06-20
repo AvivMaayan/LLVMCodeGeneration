@@ -512,11 +512,13 @@ FuncDecl::FuncDecl(const Override *override_node,
 }
 
 MarkerM::MarkerM() {
-    this->quad = buffer.genLabel();
-    buffer.labelEmit(this->quad);
+    this->quad = buffer.nextquad();
+    // this->quad = buffer.genLabel();
+    // buffer.labelEmit(this->quad);
 }
 
 MarkerN::MarkerN(Exp* exp){
+    // int quad = stoi(buffer.genLabel());
     int address = buffer.emit("br label @");
-    this->nextList = buffer.makelist(LabelLocation(address, FIRST));
+    this->next_list = buffer.makelist(LabelLocation(address, FIRST));
 }

@@ -80,44 +80,39 @@ Statement: LBRACE
          | Call SC                                                  {$$ = new Statement(dynamic_cast<Call*>($1));}
          | RETURN SC                                                {$$ = new Statement("return");}
          | RETURN Exp SC                                            {$$ = new Statement(false, dynamic_cast<Exp*>($2));}
-         | IF LPAREN isBool RPAREN Ps
+         | IF LPAREN isBool RPAREN Ps M
             Statement                           
             {
                 symbolTable.popScope();
             }
-         | IF LPAREN isBool RPAREN Ps
-            Statement ELSE   
+         | IF LPAREN isBool RPAREN Ps M
+            Statement N ELSE   
             {
                 symbolTable.popScope(); 
             } 
-            Ps Statement  
+            Ps M Statement  
             {
                 symbolTable.popScope();
             }
-         | WHILE LPAREN isBool RPAREN  
+         | WHILE M LPAREN isBool RPAREN  
             {
                 symbolTable.pushScope(true);
             } 
-            Statement  
+            M Statement  
             { 
                 symbolTable.popScope();
             }
          | BREAK SC                                                 {$$ = new Statement("break");}
          | CONTINUE SC                                              {$$ = new Statement("continue");}
 
-Ps: %empty                                                          {symbolTable.pushScope(false);}
 
-isBool: Exp                                                         {$$ = new Statement(true, dynamic_cast<Exp*>($1));}
-
-M:                                                                  {$$ = new MarkerM();}
-N:                                                                  {$$ = new MarkerN();}
 
 Call: ID LPAREN ExpList RPAREN                                      {$$ = new Call(dynamic_cast<Id*>($1)->name,
                                                                                    dynamic_cast<ExpList*>($3));}
     | ID LPAREN RPAREN                                              {$$ = new Call(dynamic_cast<Id*>($1)->name);}
 
 ExpList: Exp                                                        {$$ = new ExpList(dynamic_cast<Exp*>($1));}
-       | Exp COMMA ExpList                                          {$$ = new ExpList(dynamic_cast<Exp*>($1),
+       | Exp COMMA M ExpList                                          {$$ = new ExpList(dynamic_cast<Exp*>($1),
                                                                                       dynamic_cast<ExpList*>($3));}
 
 Type: INT                                                           {$$ = ($1);}
@@ -139,17 +134,21 @@ Exp: LPAREN Exp RPAREN                                              {$$ = new Ex
    | TRUE                                                           {$$ = ($1);}
    | FALSE                                                          {$$ = ($1);}
    | NOT Exp                                                        {$$ = new Exp(dynamic_cast<Exp*>($2));}
-   | Exp AND Exp                                                    {$$ = new Exp(dynamic_cast<Exp*>($1),
+   | Exp AND M Exp                                                    {$$ = new Exp(dynamic_cast<Exp*>($1),
                                                                                   dynamic_cast<BoolOp*>($2),
                                                                                   dynamic_cast<Exp*>($3));}
-   | Exp OR Exp                                                     {$$ = new Exp(dynamic_cast<Exp*>($1),
+   | Exp OR M Exp                                                     {$$ = new Exp(dynamic_cast<Exp*>($1),
                                                                                   dynamic_cast<BoolOp*>($2),
                                                                                   dynamic_cast<Exp*>($3));}
-   | Exp RELOP Exp                                                  {$$ = new Exp(dynamic_cast<Exp*>($1),
+   | Exp RELOP M Exp                                                  {$$ = new Exp(dynamic_cast<Exp*>($1),
                                                                                   dynamic_cast<RelOp*>($2),
                                                                                   dynamic_cast<Exp*>($3));}
    | LPAREN Type RPAREN Exp                                         {$$ = new Exp(dynamic_cast<Type*>($2),
                                                                                   dynamic_cast<Exp*>($4));}
+Ps: %empty                                                          {symbolTable.pushScope(false);}
+isBool: Exp                                                         {$$ = new Statement(true, dynamic_cast<Exp*>($1));}
+M: %empty                                                           {$$ = new MarkerM();}
+N: %empty                                                           {$$ = new MarkerN();}                                                                                  
 %%
 
 SymbolTable symbolTable = SymbolTable();

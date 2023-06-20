@@ -49,6 +49,8 @@ public:
     void printCodeBuffer();
 
     void labelEmit(string &labelName);
+
+    int nextquad();
     
     // ******** Methods to handle the data section ******** //
     void emitGlobal(const string &dataLine);

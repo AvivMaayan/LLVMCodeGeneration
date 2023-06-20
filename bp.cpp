@@ -109,7 +109,13 @@ void CodeBuffer::labelEmit(string &labelName)
     emit("br label %" + labelName);
     emit(labelName + ":");
 }
-
+/**
+* Returns the location of the next address to print to
+*/
+int CodeBuffer::nextquad()
+{
+    return buffer.size() - 1;
+}
 
 // ******** Methods to handle the global section ********** //
 /**
