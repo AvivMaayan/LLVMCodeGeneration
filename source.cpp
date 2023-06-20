@@ -317,7 +317,7 @@ Statement::Statement(Type *type, Id *id) : Node()
     /* insert the symbol to the table*/
     symbolTable.insertSymbol(id->name, type->type);
     /* code generation: */
-
+    
 }
 
 /* Type ID ASSIGN Exp SC --- int x = 6*/
@@ -517,8 +517,7 @@ MarkerM::MarkerM() {
     // buffer.labelEmit(this->quad);
 }
 
-MarkerN::MarkerN(Exp* exp){
-    // int quad = stoi(buffer.genLabel());
+MarkerN::MarkerN(){
     int address = buffer.emit("br label @");
     this->next_list = buffer.makelist(LabelLocation(address, FIRST));
 }
