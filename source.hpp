@@ -4,6 +4,8 @@
 #include <vector>
 #include <iostream>
 #include <assert.h>
+// #include "bp.hpp"
+#include "common.hpp"
 
 using std::string;
 using std::vector;
@@ -20,6 +22,22 @@ public:
     virtual ~Node() = default;
 };
 #define YYSTYPE Node *
+
+class MarkerM : public Node
+{
+public:
+    MarkerM();
+    virtual ~MarkerM() = default;
+    string quad; 
+};
+
+class MarkerN : public Node
+{
+public:
+    MarkerN();
+    virtual ~MarkerN() = default;
+    vector<LabelLocation> next_list; 
+};
 
 class Id : public Node
 {
@@ -126,6 +144,10 @@ private:
 
     bool isBooleanExp(const Exp *exp) { return (exp->type == "bool"); }
 
+    string getArgReg(int offset) { return "%" + std::to_string((1- offset)); }
+
+    string loadGetVar(int offset);
+
 public:
     string value;
     string reg;
@@ -145,7 +167,7 @@ public:
 
     Exp(const Exp *left_exp, const BinOp *op, const Exp *right_exp);
 
-    Exp(const Exp *left_exp, const BoolOp *op, const Exp *right_exp);
+    Exp(const Exp *left_exp, const BoolOp *op, const MarkerM *mark, const Exp *right_exp);
 
     Exp(const Exp *left_exp, const RelOp *op, const Exp *right_exp);
 
@@ -264,19 +286,4 @@ public:
     virtual ~FuncDecl() = default;
 };
 
-class MarkerM : public Node
-{
-public:
-    MarkerM();
-    virtual ~MarkerM() = default;
-    string quad; 
-};
-
-class MarkerN : public Node
-{
-public:
-    MarkerN();
-    virtual ~MarkerN() = default;
-    vector<LabelLocation> next_list; 
-};
 #endif

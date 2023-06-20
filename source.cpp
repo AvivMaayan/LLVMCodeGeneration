@@ -49,7 +49,7 @@ BoolOp::BoolOp(const string op)
         exit(1);
 }
 
-Exp::Exp() : Node() {};
+Exp::Exp() : Node(){};
 
 Exp::Exp(const string type, const string value)
     : Node(type), value(value)
@@ -126,7 +126,7 @@ Exp::Exp(const Exp *left_exp, const BinOp *op, const Exp *right_exp)
     buffer.emit(code);
 }
 
-Exp::Exp(const Exp *left_exp, const BoolOp *op, const Exp *right_exp)
+Exp::Exp(const Exp *left_exp, const BoolOp *op, const MarkerM *mark, const Exp *right_exp)
     : Node("bool")
 {
     if (!isBooleanExp(left_exp) || !isBooleanExp(right_exp))
@@ -137,15 +137,15 @@ Exp::Exp(const Exp *left_exp, const BoolOp *op, const Exp *right_exp)
 
     switch (op->opType)
     {
-    case BoolOp::OpTypes::OP_AND:
-        // buffer.bpatch(left_exp->true_list, label);
-        // this->true_list = BPList(right_exp->true_list);
-        // this->false_list = buffer.merge(left_exp->false_list, right_exp->false_list);
-        break;
     case BoolOp::OpTypes::OP_OR:
-        // buffer.bpatch(left_exp->false_list, label);
-        // this->true_list = buffer.merge(left_exp->true_list, right_exp->true_list);
-        // this->false_list = BPList(right_exp->false_list);
+        buffer.bpatch(left_exp->false_list, mark->quad);
+        this->true_list = buffer.merge(left_exp->true_list, right_exp->true_list);
+        this->false_list = vector<LabelLocation>(right_exp->false_list);
+        break;
+    case BoolOp::OpTypes::OP_AND:
+        buffer.bpatch(left_exp->true_list, mark->quad);
+        this->true_list = vector<LabelLocation>(right_exp->true_list);
+        this->false_list = buffer.merge(left_exp->false_list, right_exp->false_list);
         break;
     }
 }
@@ -222,6 +222,16 @@ Exp::Exp(const Id *id)
     /* We can't get the symbol's real value,
        so we'll use "0" which is a legal BYTE value */
     this->value = "0";
+
+    int offset = symbolTable.getSymbolOffset(id->name);
+    bool is_arg = (offset < 0);
+    this->reg = (is_arg) ? this->getArgReg(offset) : this->loadGetVar(offset);
+}
+
+string Exp::loadGetVar(int offset)
+{
+    string rbp = symbolTable.getCurrentRbp();
+    return buffer.loadVaribale(rbp, offset);
 }
 
 Exp::Exp(const Call *call) : Node(call->return_type) {}
@@ -340,11 +350,13 @@ Statement::Statement(Type *type, Id *id) : Node()
     Exp *exp = new Exp();
     exp->reg = buffer.genReg();
     exp->type = type->type;
-    if(this->type == "bool") {
+    if (this->type == "bool")
+    {
         exp->value = "false";
         buffer.boolCode(exp);
     }
-    else {
+    else
+    {
         exp->value = "0";
         buffer.numCode(exp->reg, "0");
         buffer.assignCode(exp, offset, type->type);
@@ -467,7 +479,7 @@ Statement::Statement(bool checkIfExpIsBoolean, Exp *exp)
 /**
  * Merge the lists of the given statement with this one.
  * @param statement - the stmt to merge its list to ours
-*/
+ */
 void Statement::mergeStatements(Statement *statement)
 {
 }
@@ -550,13 +562,15 @@ FuncDecl::FuncDecl(const Override *override_node,
     }
 }
 
-MarkerM::MarkerM() {
+MarkerM::MarkerM()
+{
     this->quad = buffer.nextquad();
     // this->quad = buffer.genLabel();
     // buffer.labelEmit(this->quad);
 }
 
-MarkerN::MarkerN(){
+MarkerN::MarkerN()
+{
     int address = buffer.emit("br label @");
     this->next_list = buffer.makelist(LabelLocation(address, FIRST));
 }

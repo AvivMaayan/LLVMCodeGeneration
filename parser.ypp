@@ -81,24 +81,24 @@ Statement: LBRACE
          | RETURN SC                                                {$$ = new Statement("return");}
          | RETURN Exp SC                                            {$$ = new Statement(false, dynamic_cast<Exp*>($2));}
          | IF LPAREN isBool RPAREN Ps M
-            Statement                           
+            Statement
             {
                 symbolTable.popScope();
             }
          | IF LPAREN isBool RPAREN Ps M
-            Statement N ELSE   
+            Statement ELSE N
             {
-                symbolTable.popScope(); 
+                symbolTable.popScope();
             } 
-            Ps M Statement  
+            Ps M Statement
             {
                 symbolTable.popScope();
             }
-         | WHILE M LPAREN isBool RPAREN  
+         | WHILE M LPAREN isBool RPAREN
             {
                 symbolTable.pushScope(true);
             } 
-            M Statement  
+            M Statement
             { 
                 symbolTable.popScope();
             }
@@ -136,19 +136,23 @@ Exp: LPAREN Exp RPAREN                                              {$$ = new Ex
    | NOT Exp                                                        {$$ = new Exp(dynamic_cast<Exp*>($2));}
    | Exp AND M Exp                                                    {$$ = new Exp(dynamic_cast<Exp*>($1),
                                                                                   dynamic_cast<BoolOp*>($2),
-                                                                                  dynamic_cast<Exp*>($3));}
+                                                                                  dynamic_cast<MarkerM*>($3),
+                                                                                  dynamic_cast<Exp*>($4));}
    | Exp OR M Exp                                                     {$$ = new Exp(dynamic_cast<Exp*>($1),
                                                                                   dynamic_cast<BoolOp*>($2),
-                                                                                  dynamic_cast<Exp*>($3));}
-   | Exp RELOP M Exp                                                  {$$ = new Exp(dynamic_cast<Exp*>($1),
+                                                                                  dynamic_cast<MarkerM*>($3),
+                                                                                  dynamic_cast<Exp*>($4));}
+   | Exp RELOP Exp                                                  {$$ = new Exp(dynamic_cast<Exp*>($1),
                                                                                   dynamic_cast<RelOp*>($2),
                                                                                   dynamic_cast<Exp*>($3));}
    | LPAREN Type RPAREN Exp                                         {$$ = new Exp(dynamic_cast<Type*>($2),
                                                                                   dynamic_cast<Exp*>($4));}
+
 Ps: %empty                                                          {symbolTable.pushScope(false);}
 isBool: Exp                                                         {$$ = new Statement(true, dynamic_cast<Exp*>($1));}
 M: %empty                                                           {$$ = new MarkerM();}
-N: %empty                                                           {$$ = new MarkerN();}                                                                                  
+N: %empty                                                           {$$ = new MarkerN();}
+
 %%
 
 SymbolTable symbolTable = SymbolTable();

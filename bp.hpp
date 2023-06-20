@@ -3,19 +3,12 @@
 
 #include <vector>
 #include <string>
+#include "common.hpp"
 #include "source.hpp"
 
 using namespace std;
 
-// this enum is used to distinguish between the two possible missing labels of a conditional branch in LLVM during backpatching.
-// for an unconditional branch (which contains only a single label) use FIRST.
-enum BranchLabelIndex
-{
-    FIRST,
-    SECOND
-};
 
-typedef pair<int, BranchLabelIndex> LabelLocation;
 
 class CodeBuffer
 {
