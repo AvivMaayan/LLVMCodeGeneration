@@ -7,3 +7,5 @@
     * As we add to CodeBuffer we may use this to see the generated LLVM IR.
 
 2. To do:
+    1. (Aviv) Update C'tors of Expressions to use markers and upfate lists.
+    2. (Aviv) Finish RelOp and BoolOp

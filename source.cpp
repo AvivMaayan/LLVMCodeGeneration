@@ -84,10 +84,12 @@ Exp::Exp(const RawNumber *num, const string type)
 Exp::Exp(const Exp *bool_exp)
     : Node(bool_exp->type)
 {
-    // assert(bool_exp->type == "bool");
+    assert(bool_exp->type == "bool");
 
-    // Actual value is not needed....
-    // this->value = (bool_exp.value == "true") ? "false" : "true";
+    this->value = (bool_exp->value == "true") ? "false" : "true";
+
+    this->true_list = bool_exp->false_list;
+    this->false_list = bool_exp->true_list;
 }
 
 Exp::Exp(const Exp *left_exp, const BinOp *op, const Exp *right_exp)
@@ -133,7 +135,19 @@ Exp::Exp(const Exp *left_exp, const BoolOp *op, const Exp *right_exp)
         exit(1);
     }
 
-    // Actual value is not needed....
+    switch (op->opType)
+    {
+    case BoolOp::OpTypes::OP_AND:
+        // buffer.bpatch(left_exp->true_list, label);
+        // this->true_list = BPList(right_exp->true_list);
+        // this->false_list = buffer.merge(left_exp->false_list, right_exp->false_list);
+        break;
+    case BoolOp::OpTypes::OP_OR:
+        // buffer.bpatch(left_exp->false_list, label);
+        // this->true_list = buffer.merge(left_exp->true_list, right_exp->true_list);
+        // this->false_list = BPList(right_exp->false_list);
+        break;
+    }
 }
 
 Exp::Exp(const Exp *left_exp, const RelOp *op, const Exp *right_exp)
