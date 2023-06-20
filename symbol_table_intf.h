@@ -163,8 +163,9 @@ public:
      * for non-function symbols. No checks are performed so assumes that the symbol is supposed to be inserted.
      * @param name the name of the symbol to add
      * @param type the type of the symbol to add
+     * @return int - the offset of the symbol inserted
      */
-    void insertSymbol(const string name, string type);
+    int insertSymbol(const string name, string type);
 
     /**
      * Create a function symbol from the given parameters and insert to the latest scope.
@@ -183,6 +184,13 @@ public:
      *         False - the symbol doesn't exist
      */
     bool isSymbolExist(const string name);
+
+    /**
+     * returns the offset of the symbol. HAVE to make sure it exsits beforehand.
+     * @param name the name of the symbol 
+     * @return int - the offset of the symbol
+    */
+    int getSymbolOffset(const string name);
 
     /**
      * Return a boolean stating if exists a *function* symbol within any of the Scopes
@@ -237,6 +245,12 @@ public:
      * @return string indicating the return type
      */
     string getClosestReturnType();
+
+    /**
+     * Get the rbp of the current Scope.
+     * @return string - the rbp address in a string value
+    */
+    string getCurrentRbp();
 
     /**
      * Checks if there exists a symbol named "name" in the table, and if it also

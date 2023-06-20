@@ -103,18 +103,34 @@ vector<LabelLocation> CodeBuffer::merge(const vector<LabelLocation> &l1, const v
 /**
  * Emit two lines needed for generating a label jump.
  * @param labelName the name of the label to emit
-*/
+ */
 void CodeBuffer::labelEmit(string &labelName)
 {
     emit("br label %" + labelName);
     emit(labelName + ":");
 }
 /**
-* Returns the location of the next address to print to
-*/
+ * Returns the location of the next address to print to
+ */
 int CodeBuffer::nextquad()
 {
     return buffer.size() - 1;
+}
+
+void CodeBuffer::boolCode(Exp* exp)
+{
+}
+
+void CodeBuffer::numCode(const string &reg, const string &value)
+{
+}
+
+void CodeBuffer::assignCode(Exp* exp, int offset, string& type)
+{
+}
+
+void CodeBuffer::returnCode(string &returnType, string& reg)
+{
 }
 
 // ******** Methods to handle the global section ********** //
@@ -220,4 +236,3 @@ string CodeBuffer::allocFunctionRbp()
 }
 
 /**************** Emit specific code methods *******************/
-

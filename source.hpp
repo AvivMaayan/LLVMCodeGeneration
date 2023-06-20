@@ -5,10 +5,6 @@
 #include <iostream>
 #include <assert.h>
 
-#include "hw3_output.hpp"
-#include "symbol_table_intf.h"
-#include "bp.hpp"
-
 using std::string;
 using std::vector;
 
@@ -136,6 +132,9 @@ public:
     string code;
     vector<LabelLocation> true_list;
     vector<LabelLocation> false_list;
+    vector<LabelLocation> next_list;
+
+    Exp(); // for the newly created expressions in this assignment
 
     Exp(const string type, const string value);
 

@@ -1,4 +1,7 @@
 #include "source.hpp"
+#include "hw3_output.hpp"
+#include "symbol_table_intf.h"
+#include "bp.hpp"
 
 extern int yylineno;
 extern SymbolTable symbolTable;
@@ -45,6 +48,8 @@ BoolOp::BoolOp(const string op)
     else
         exit(1);
 }
+
+Exp::Exp() : Node() {};
 
 Exp::Exp(const string type, const string value)
     : Node(type), value(value)
@@ -315,9 +320,22 @@ Statement::Statement(Type *type, Id *id) : Node()
         exit(1);
     }
     /* insert the symbol to the table*/
-    symbolTable.insertSymbol(id->name, type->type);
-    /* code generation: */
-    
+    int offset = symbolTable.insertSymbol(id->name, type->type);
+    this->type = type->type;
+    /******************* code generation: *****************************/
+    Exp *exp = new Exp();
+    exp->reg = buffer.genReg();
+    exp->type = type->type;
+    if(this->type == "bool") {
+        exp->value = "false";
+        buffer.boolCode(exp);
+    }
+    else {
+        exp->value = "0";
+        buffer.numCode(exp->reg, "0");
+        buffer.assignCode(exp, offset, type->type);
+    }
+    delete exp;
 }
 
 /* Type ID ASSIGN Exp SC --- int x = 6*/
@@ -337,11 +355,9 @@ Statement::Statement(Type *type, Id *id, Exp *exp) : Node()
         exit(1);
     }
     /* if we got here this statement is ok. insert the new symbol*/
-    symbolTable.insertSymbol(id->name, type->type);
-    /* add value of the int/byte if it is one of them:*/
-    //     if(exp->type == "int" || exp->type == "byte") {
-    //         id->value = exp->value;
-    //     }
+    int offset = symbolTable.insertSymbol(id->name, type->type);
+    /******************* code generation: *****************************/
+    buffer.assignCode(exp, offset, type->type);
 }
 
 /* ID ASSIGN Exp SC*/
@@ -366,9 +382,14 @@ Statement::Statement(Id *id, Exp *exp) : Node()
         exit(1);
     }
     /* assignment is legal*/
+    /******************* code generation: *****************************/
+    int offset = symbolTable.getSymbolOffset(id->name);
+    string type = symbolTable.getSymbolType(id->name);
+    buffer.assignCode(exp, offset, type);
 }
 
 /* Call SC*/
+/* DID NOT implement code generation YET*/
 Statement::Statement(Call *call) : Node()
 {
     /* getting here means the call is legal! so just assign the type:*/
@@ -417,6 +438,10 @@ Statement::Statement(bool checkIfExpIsBoolean, Exp *exp)
             output::errorMismatch(yylineno);
             exit(1);
         }
+        /******************* code generation: *****************************/
+        string returnType = symbolTable.getClosestReturnType();
+        string rbp = symbolTable.getCurrentRbp();
+        // int offset = symbolTable.getSymbolOffset(exp->name);
     }
     else if (exp->type != "bool")
     {

@@ -181,7 +181,7 @@ void SymbolTable::popScope()
     delete pScope;
 }
 
-void SymbolTable::insertSymbol(const string name, string type)
+int SymbolTable::insertSymbol(const string name, string type)
 {
     /* assert that there is a Scope with an offset already*/
     assert(m_offsets.size() > 0 && m_scopes.size() > 0);
@@ -194,6 +194,8 @@ void SymbolTable::insertSymbol(const string name, string type)
     /* Update offset head stack to +1*/
     m_offsets.pop();
     m_offsets.push(offset + 1);
+    /** return the offset of the symbol inserted*/
+    return offset;
 }
 
 void SymbolTable::insertFuncSymbol(const string name, string returnType, bool isOverride,
