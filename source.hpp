@@ -19,11 +19,11 @@ public:
 
     Node(const string type = "") : type(type) {}
 
-    Node(const Node &node): type(node.type) {}
+    Node(const Node &node) : type(node.type) {}
 
     virtual ~Node() = default;
 };
-#define YYSTYPE Node*
+#define YYSTYPE Node *
 
 class Id : public Node
 {
@@ -229,6 +229,8 @@ public:
 class Statement : public Node
 {
 public:
+    vector<LabelLocation> cont_list = {};
+    vector<LabelLocation> break_list = {};
     /* Type ID SC*/
     Statement(Type *type, Id *id);
     /* Type ID ASSIGN Exp SC --- int x = 6*/
@@ -243,6 +245,8 @@ public:
      * --or-- IF LPAREN Exp RPAREN Statement ELSE Statement
      * --or-- WHILE LPAREN Exp RPAREN Statement*/
     Statement(bool checkIfExpIsBoolean, Exp *exp);
+
+    void mergeStatements(Statement *statement);
 
     virtual ~Statement() = default;
 };
@@ -259,5 +263,21 @@ public:
              const FormalList *formals_node);
 
     virtual ~FuncDecl() = default;
+};
+
+class MarkerM : public Node
+{
+public:
+    MarkerM();
+    virtual ~MarkerM() = default;
+    string quad; 
+};
+
+class MarkerN : public Node
+{
+public:
+    MarkerN(Exp* exp);
+    virtual ~MarkerN() = default;
+    vector<LabelLocation> nextList; 
 };
 #endif

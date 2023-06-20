@@ -100,6 +100,17 @@ vector<LabelLocation> CodeBuffer::merge(const vector<LabelLocation> &l1, const v
     return newList;
 }
 
+/**
+ * Emit two lines needed for generating a label jump.
+ * @param labelName the name of the label to emit
+*/
+void CodeBuffer::labelEmit(string &labelName)
+{
+    emit("br label %" + labelName);
+    emit(labelName + ":");
+}
+
+
 // ******** Methods to handle the global section ********** //
 /**
  * write a line to the global section
@@ -147,6 +158,9 @@ void CodeBuffer::testBuffer()
     //     string fresh_reg = genReg();
     //     emit(fresh_reg);
     // }
+    string reg = genReg();
+    storeVariable("", 0, reg);
+    string reg2 = loadVaribale("", 0);
     printCodeBuffer();
 }
 

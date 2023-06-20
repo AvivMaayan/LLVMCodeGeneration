@@ -48,6 +48,8 @@ public:
 
     void printCodeBuffer();
 
+    void labelEmit(string &labelName);
+    
     // ******** Methods to handle the data section ******** //
     void emitGlobal(const string &dataLine);
     

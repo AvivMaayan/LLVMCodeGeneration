@@ -109,6 +109,9 @@ Ps: %empty                                                          {symbolTable
 
 isBool: Exp                                                         {$$ = new Statement(true, dynamic_cast<Exp*>($1));}
 
+M:                                                                  {$$ = new MarkerM();}
+N:                                                                  {$$ = new MarkerN();}
+
 Call: ID LPAREN ExpList RPAREN                                      {$$ = new Call(dynamic_cast<Id*>($1)->name,
                                                                                    dynamic_cast<ExpList*>($3));}
     | ID LPAREN RPAREN                                              {$$ = new Call(dynamic_cast<Id*>($1)->name);}

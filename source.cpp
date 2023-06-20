@@ -305,6 +305,7 @@ vector<string> FormalList::getNamesVector() const
     return arg_names;
 }
 
+/* Type ID SC*/
 Statement::Statement(Type *type, Id *id) : Node()
 {
     /* check if symbol already exists with this name*/
@@ -315,8 +316,11 @@ Statement::Statement(Type *type, Id *id) : Node()
     }
     /* insert the symbol to the table*/
     symbolTable.insertSymbol(id->name, type->type);
+    /* code generation: */
+
 }
 
+/* Type ID ASSIGN Exp SC --- int x = 6*/
 Statement::Statement(Type *type, Id *id, Exp *exp) : Node()
 {
     /* check if symbol already exists*/
@@ -335,11 +339,12 @@ Statement::Statement(Type *type, Id *id, Exp *exp) : Node()
     /* if we got here this statement is ok. insert the new symbol*/
     symbolTable.insertSymbol(id->name, type->type);
     /* add value of the int/byte if it is one of them:*/
-//     if(exp->type == "int" || exp->type == "byte") {
-//         id->value = exp->value;
-//     }
+    //     if(exp->type == "int" || exp->type == "byte") {
+    //         id->value = exp->value;
+    //     }
 }
 
+/* ID ASSIGN Exp SC*/
 Statement::Statement(Id *id, Exp *exp) : Node()
 {
     /* if the symbol doesn't exist it is illegal to assign*/
@@ -363,12 +368,14 @@ Statement::Statement(Id *id, Exp *exp) : Node()
     /* assignment is legal*/
 }
 
+/* Call SC*/
 Statement::Statement(Call *call) : Node()
 {
     /* getting here means the call is legal! so just assign the type:*/
     this->type = call->type;
 }
 
+/* RETURN SC --or-- BREAK SC --or-- CONTINUE SC*/
 Statement::Statement(const string operation)
 {
     if (operation == "return")
@@ -396,6 +403,9 @@ Statement::Statement(const string operation)
     }
 }
 
+/* RETURN Exp SC --or-- IF LPAREN Exp RPAREN Statement
+ * --or-- IF LPAREN Exp RPAREN Statement ELSE Statement
+ * --or-- WHILE LPAREN Exp RPAREN Statement*/
 Statement::Statement(bool checkIfExpIsBoolean, Exp *exp)
 {
     /* check if this is the [RETURN Exp SC] case*/
@@ -415,6 +425,14 @@ Statement::Statement(bool checkIfExpIsBoolean, Exp *exp)
     }
 }
 
+/**
+ * Merge the lists of the given statement with this one.
+ * @param statement - the stmt to merge its list to ours
+*/
+void Statement::mergeStatements(Statement *statement)
+{
+}
+
 FuncDecl::FuncDecl(const Override *override_node,
                    const RetType *ret_type_node,
                    const Id *id_node,
@@ -431,7 +449,7 @@ FuncDecl::FuncDecl(const Override *override_node,
         /* if it's not double defined, make sure it's override*/
         if (!symbolTable.isSymbolOverride(name))
         {
-            if(!override)
+            if (!override)
             {
                 output::errorDef(yylineno, name);
                 exit(1);
@@ -491,4 +509,14 @@ FuncDecl::FuncDecl(const Override *override_node,
         output::errorDef(yylineno, errorName);
         exit(1);
     }
+}
+
+MarkerM::MarkerM() {
+    this->quad = buffer.genLabel();
+    buffer.labelEmit(this->quad);
+}
+
+MarkerN::MarkerN(Exp* exp){
+    int address = buffer.emit("br label @");
+    this->nextList = buffer.makelist(LabelLocation(address, FIRST));
 }
