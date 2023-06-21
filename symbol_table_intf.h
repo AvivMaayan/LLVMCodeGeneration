@@ -249,6 +249,7 @@ public:
     /**
      * Get the rbp of the current Scope.
      * @return string - the rbp address in a string value
+     * @note make sure to call this function when there is at least one scope
     */
     string getCurrentRbp();
 

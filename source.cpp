@@ -411,6 +411,8 @@ Statement::Statement(Id *id, Exp *exp) : Node()
     /******************* code generation: *****************************/
     int offset = symbolTable.getSymbolOffset(id->name);
     string type = symbolTable.getSymbolType(id->name);
+    /* the case of an assignemnt to a parameter isn't supposed to be checked*/
+    assert(offset >= 0);
     buffer.assignCode(exp, offset, type);
 }
 
@@ -433,6 +435,8 @@ Statement::Statement(const string operation)
             output::errorMismatch(yylineno);
             exit(1);
         }
+        /******************* code generation: *****************************/
+        buffer.emit("ret void");
     }
     else
     {
@@ -467,8 +471,17 @@ Statement::Statement(bool checkIfExpIsBoolean, Exp *exp)
         /******************* code generation: *****************************/
         string returnType = symbolTable.getClosestReturnType();
         string rbp = symbolTable.getCurrentRbp();
-        // int offset = symbolTable.getSymbolOffset(exp->name);
+        if(exp->type == "bool") {
+            /* perform some tasks*/
+            /* need to check here if the exp is a variable?*/
+        }
+        else {
+            /* print the return command*/
+            buffer.emit("ret " + returnType + " " + exp->reg);
+        }
+        
     }
+    /* maybe need to remove this part and the if/while change places*/
     else if (exp->type != "bool")
     {
         output::errorMismatch(yylineno);

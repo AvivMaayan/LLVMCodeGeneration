@@ -71,6 +71,7 @@ bool Scope::isSymbolExist(const string name)
     return false;
 }
 
+
 bool Scope::getSymbol(const string name, PSymbol *pSymbolOut)
 {
     if (!isSymbolExist(name))
@@ -224,6 +225,23 @@ bool SymbolTable::isSymbolExist(const string name)
     return false;
 }
 
+int SymbolTable::getSymbolOffset(const string name)
+{
+    PSymbol pSymbol;
+    /* Search all scopes one at a time from the begining for the symbol*/
+    for (auto it = m_scopes.begin(); it != m_scopes.end(); it++)
+    {
+        /* (*it) is the current scope*/
+        if ((*it)->getSymbol(name, &pSymbol) == true)
+        {
+            /* we found the symbol*/
+            return pSymbol->m_offset;
+        }
+    }
+    /* not supposed to get here*/
+    assert(false);
+}
+
 bool SymbolTable::isFuncSymbolNameExist(const string name)
 {
     return getSymbolType(name) == "func";
@@ -320,6 +338,14 @@ string SymbolTable::getClosestReturnType()
         }
     }
     return "";
+}
+
+string SymbolTable::getCurrentRbp()
+{
+    PScope currentScope = *(m_scopes.rend());
+    /* the m_scopes is not suppose to be empty. if so, it's a bug*/
+    assert(currentScope != nullptr);
+    return currentScope->m_rbp;
 }
 
 bool SymbolTable::isSymbolOverride(const string name)
