@@ -81,15 +81,21 @@ Exp::Exp(const RawNumber *num, const string type)
     this->reg = num->value;
 }
 
-Exp::Exp(const Exp *bool_exp)
+Exp::Exp(bool is_not, const Exp *bool_exp)
     : Node(bool_exp->type)
 {
     assert(bool_exp->type == "bool");
 
-    this->value = (bool_exp->value == "true") ? "false" : "true";
+    if (is_not)
+    {
+        this->value = (bool_exp->value == "true") ? "false" : "true";
+        this->true_list = bool_exp->false_list;
+        this->false_list = bool_exp->true_list;
+    }
 
-    this->true_list = bool_exp->false_list;
-    this->false_list = bool_exp->true_list;
+    this->value = bool_exp->value;
+    this->true_list = bool_exp->true_list;
+    this->false_list = bool_exp->false_list;
 }
 
 Exp::Exp(const Exp *left_exp, const BinOp *op, const Exp *right_exp)
@@ -577,9 +583,13 @@ FuncDecl::FuncDecl(const Override *override_node,
 
 MarkerM::MarkerM()
 {
-    this->quad = buffer.nextquad();
-    // this->quad = buffer.genLabel();
-    // buffer.labelEmit(this->quad);
+    /** Although in the lacture's IR line numbers were used for backpatching-
+     *  in LLVM we must use labels.
+     *  Therefore, instead of saving #line to this->quad-
+     *  we generate a fresh label, emit it and save it as quad.
+    */
+
+    this->quad = buffer.genLabel();
 }
 
 MarkerN::MarkerN()

@@ -44,8 +44,8 @@ public:
 
     void labelEmit(string &labelName);
 
-    int nextquad();
-    
+    // int nextquad();
+
     void boolCode(Exp *exp);
 
     void numCode(const string &reg, const string &value);

@@ -106,16 +106,20 @@ vector<LabelLocation> CodeBuffer::merge(const vector<LabelLocation> &l1, const v
  */
 void CodeBuffer::labelEmit(string &labelName)
 {
-    emit("br label %" + labelName);
+    /** We might need to close the prev block here using the first emit.
+     * @todo: Figure out
+    */
+    // emit("br label %" + labelName);
     emit(labelName + ":");
 }
 /**
  * Returns the location of the next address to print to
- */
 int CodeBuffer::nextquad()
 {
-    return buffer.size() - 1;
+    // return buffer.size() - 1;
+    return buffer.size();
 }
+ */
 
 void CodeBuffer::boolCode(Exp* exp)
 {
@@ -180,9 +184,9 @@ void CodeBuffer::testBuffer()
     //     string fresh_reg = genReg();
     //     emit(fresh_reg);
     // }
-    string reg = genReg();
-    storeVariable("", 0, reg);
-    string reg2 = loadVaribale("", 0);
+    // string reg = genReg();
+    // storeVariable("", 0, reg);
+    // string reg2 = loadVaribale("", 0);
     printCodeBuffer();
 }
 

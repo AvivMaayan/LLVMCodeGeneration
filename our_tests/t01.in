@@ -1,3 +1,5 @@
 void main() {
-	int life = 4 * 10 + 2;
+	// int life = 4 * 10 + 2;
+
+	bool flag2 = ((4 > 5) or (10 != 10)) and (5 == 5);
 }

@@ -119,7 +119,7 @@ Type: INT                                                           {$$ = ($1);}
     | BYTE                                                          {$$ = ($1);}
     | BOOL                                                          {$$ = ($1);}
 
-Exp: LPAREN Exp RPAREN                                              {$$ = new Exp(dynamic_cast<Exp*>($2));}
+Exp: LPAREN Exp RPAREN                                              {$$ = new Exp(false, dynamic_cast<Exp*>($2));}
    | Exp BINSUBSUM Exp                                              {$$ = new Exp(dynamic_cast<Exp*>($1),
                                                                                   dynamic_cast<BinOp*>($2),
                                                                                   dynamic_cast<Exp*>($3));}
@@ -133,7 +133,7 @@ Exp: LPAREN Exp RPAREN                                              {$$ = new Ex
    | STRING                                                         {$$ = ($1);}
    | TRUE                                                           {$$ = ($1);}
    | FALSE                                                          {$$ = ($1);}
-   | NOT Exp                                                        {$$ = new Exp(dynamic_cast<Exp*>($2));}
+   | NOT Exp                                                        {$$ = new Exp(true, dynamic_cast<Exp*>($2));}
    | Exp AND M Exp                                                    {$$ = new Exp(dynamic_cast<Exp*>($1),
                                                                                   dynamic_cast<BoolOp*>($2),
                                                                                   dynamic_cast<MarkerM*>($3),
