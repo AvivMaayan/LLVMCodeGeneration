@@ -126,18 +126,8 @@ int CodeBuffer::nextquad()
 }
  */
 
-void CodeBuffer::boolCode(Exp* exp)
-{
-}
-
-void CodeBuffer::numCode(const string &reg, const string &value)
-{
-}
 
 
-void CodeBuffer::returnCode(string &returnType, string& reg)
-{
-}
 
 // ******** Methods to handle the global section ********** //
 /**

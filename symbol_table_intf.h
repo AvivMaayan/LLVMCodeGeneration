@@ -79,7 +79,8 @@ public:
     /*default c'tor and d'tor since the values aren't known yet*/
     Scope(bool isLoop, string returnType = "") : m_symbols(),
                                                  m_isLoop(isLoop),
-                                                 m_returnType(returnType){};
+                                                 m_returnType(returnType),
+                                                 m_rbp{""}{};
 
     ~Scope();
 
