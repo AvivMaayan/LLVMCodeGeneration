@@ -28,7 +28,7 @@ class MarkerM : public Node
 public:
     MarkerM();
     virtual ~MarkerM() = default;
-    string quad; 
+    string quad;
 };
 
 class MarkerN : public Node
@@ -36,7 +36,7 @@ class MarkerN : public Node
 public:
     MarkerN();
     virtual ~MarkerN() = default;
-    vector<LabelLocation> next_list; 
+    vector<LabelLocation> next_list;
 };
 
 class Id : public Node
@@ -144,7 +144,7 @@ private:
 
     bool isBooleanExp(const Exp *exp) { return (exp->type == "bool"); }
 
-    string getArgReg(int offset) { return "%" + std::to_string((1- offset)); }
+    string getArgReg(int offset) { return "%" + std::to_string((1 - offset)); }
 
     string loadGetVar(int offset);
 
@@ -267,11 +267,11 @@ public:
     /* RETURN Exp SC*/
     Statement(Exp *exp);
     /* IF LPAREN Exp RPAREN M Statement*/
-    Statement(Exp *exp, MarkerM* m);
+    Statement(Exp *exp, MarkerM *m);
     /* IF LPAREN Exp RPAREN M Statement ELSE N M Statement*/
-    Statement(Exp *exp, MarkerM* m1, MarkerN* n, MarkerM* m2);
+    Statement(Exp *exp, MarkerM *m1, MarkerN *n, MarkerM *m2);
     /* WHILE M LPAREN Exp RPAREN M Statement*/
-    Statement(MarkerM* m1, Exp *exp, MarkerM* m2);
+    Statement(MarkerM *m1, Exp *exp, MarkerM *m2);
 
     virtual ~Statement() = default;
 
@@ -283,9 +283,9 @@ public:
 
     void numCode(const string &reg, const string &value);
 
-    void assignCode(Exp* exp, int offset, bool isBool);
+    void assignCode(Exp *exp, int offset, bool isBool);
 
-    void returnCode(string &returnType, string& reg);
+    void returnCode(string &returnType, string &reg);
 };
 
 class FuncDecl : public Node

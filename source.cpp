@@ -260,8 +260,7 @@ void Exp::evaluateBoolToReg()
     string phi_label = buffer.genLabel();
     vector<LabelLocation> phi_jump_locations = buffer.merge(
         buffer.makelist(true_jump_to_phi_loc),
-        buffer.makelist(false_jump_to_phi_loc)
-    );
+        buffer.makelist(false_jump_to_phi_loc));
     buffer.bpatch(phi_jump_locations, phi_label);
 
     this->reg = buffer.genReg();
@@ -559,6 +558,15 @@ Statement::Statement(bool checkIfExpIsBoolean, Exp *exp)
  */
 void Statement::mergeStatements(Statement *statement)
 {
+}
+
+void Statement::assignCode(Exp *exp, int offset, bool isBool)
+{
+    if (!exp->in_reg())
+    {
+        exp->evaluateBoolToReg();
+    }
+    buffer.storeVariable(symbolTable.getCurrentRbp(), offset, exp->reg);
 }
 
 FuncDecl::FuncDecl(const Override *override_node,

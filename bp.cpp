@@ -134,9 +134,6 @@ void CodeBuffer::numCode(const string &reg, const string &value)
 {
 }
 
-void CodeBuffer::assignCode(Exp* exp, int offset, string& type)
-{
-}
 
 void CodeBuffer::returnCode(string &returnType, string& reg)
 {
