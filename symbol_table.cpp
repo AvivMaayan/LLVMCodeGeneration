@@ -369,6 +369,15 @@ string SymbolTable::getCurrentRbp()
     return currentScope->m_rbp;
 }
 
+void SymbolTable::setCurrentRbp(string newRbp)
+{
+    PScope currentScope = m_scopes.back();
+    /* the m_scopes is not suppose to be empty. if so, it's a bug*/
+    assert(currentScope != nullptr);
+    /* update the rbp*/
+    currentScope->m_rbp = newRbp; 
+}
+
 bool SymbolTable::isSymbolOverride(const string name)
 {
     PSymbol pSymbolToCheck;

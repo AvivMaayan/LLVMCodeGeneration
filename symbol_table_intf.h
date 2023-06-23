@@ -268,6 +268,13 @@ public:
     string getCurrentRbp();
 
     /**
+     * Set the rbp of the current scope (the last one)
+     * 
+     * @param newRbp - reg holding the address of the rbp
+     */
+    void setCurrentRbp(string newRbp);
+
+    /**
      * Checks if there exists a symbol named "name" in the table, and if it also
      * a with value of "True" in the isOverride member
      * @param name the name of the symbol to look for
