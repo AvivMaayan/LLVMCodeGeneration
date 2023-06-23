@@ -92,10 +92,11 @@ Exp::Exp(bool is_not, const Exp *bool_exp)
         this->true_list = bool_exp->false_list;
         this->false_list = bool_exp->true_list;
     }
-    else {
-    this->value = bool_exp->value;
-    this->true_list = bool_exp->true_list;
-    this->false_list = bool_exp->false_list;
+    else
+    {
+        this->value = bool_exp->value;
+        this->true_list = bool_exp->true_list;
+        this->false_list = bool_exp->false_list;
     }
 }
 
@@ -446,11 +447,13 @@ Statement::Statement(const string operation)
         }
         /* 'break' or 'continue' both require a jump that will later be backpatched*/
         int address = buffer.emit("br label @");
-        if(operation == "break") {
+        if (operation == "break")
+        {
             /* create break list for this break command*/
-            this->break_list = buffer.makelist(LabelLocation(address, FIRST)); 
+            this->break_list = buffer.makelist(LabelLocation(address, FIRST));
         }
-        else { /* the operation is continue*/
+        else
+        { /* the operation is continue*/
             /* create continue list for this continue command*/
             this->cont_list = buffer.makelist(LabelLocation(address, FIRST));
         }
@@ -460,7 +463,34 @@ Statement::Statement(const string operation)
 /* RETURN Exp SC*/
 Statement::Statement(Exp *exp)
 {
-        
+    /* check for the return type (has to be the same as exp)*/
+    if (!symbolTable.checkTypes(symbolTable.getClosestReturnType(), exp->type))
+    {
+        output::errorMismatch(yylineno);
+        exit(1);
+    }
+    /******************* code generation: *****************************/
+    /* convert return type to LLVM syntax*/
+    string returnType = symbolTable.getClosestReturnType();
+    if (returnType == "string")
+    {
+        returnType = "i8*";
+    }
+    else
+    {
+        returnType = "i32";
+    }
+    /* have different treatments for variables and non variables*/
+    if (exp->type == "bool")
+    {
+        /* perform some tasks*/
+        /* need to check here if the exp is a variable?*/
+    }
+    else
+    {
+        /* print the return command*/
+        buffer.emit("ret " + returnType + " " + exp->reg);
+    }
 }
 
 /* RETURN Exp SC --or-- IF LPAREN Exp RPAREN Statement
@@ -468,28 +498,29 @@ Statement::Statement(Exp *exp)
  * --or-- WHILE LPAREN Exp RPAREN Statement*/
 Statement::Statement(bool checkIfExpIsBoolean, Exp *exp)
 {
-    /* check if this is the [RETURN Exp SC] case*/
-    if (checkIfExpIsBoolean == false)
-    {
-        /* check for the return type (has to be the same as exp)*/
-        if (!symbolTable.checkTypes(symbolTable.getClosestReturnType(), exp->type))
-        {
-            output::errorMismatch(yylineno);
-            exit(1);
-        }
-        /******************* code generation: *****************************/
-        string returnType = symbolTable.getClosestReturnType();
-        string rbp = symbolTable.getCurrentRbp();
-        if(exp->type == "bool") {
-            /* perform some tasks*/
-            /* need to check here if the exp is a variable?*/
-        }
-        else {
-            /* print the return command*/
-            buffer.emit("ret " + returnType + " " + exp->reg);
-        }
-        
-    }
+    // /* check if this is the [RETURN Exp SC] case*/
+    // if (checkIfExpIsBoolean == false)
+    // {
+    //     /* check for the return type (has to be the same as exp)*/
+    //     if (!symbolTable.checkTypes(symbolTable.getClosestReturnType(), exp->type))
+    //     {
+    //         output::errorMismatch(yylineno);
+    //         exit(1);
+    //     }
+    //     /******************* code generation: *****************************/
+    //     string returnType = symbolTable.getClosestReturnType();
+    //     string rbp = symbolTable.getCurrentRbp();
+    //     if (exp->type == "bool")
+    //     {
+    //         /* perform some tasks*/
+    //         /* need to check here if the exp is a variable?*/
+    //     }
+    //     else
+    //     {
+    //         /* print the return command*/
+    //         buffer.emit("ret " + returnType + " " + exp->reg);
+    //     }
+    // }
     /* maybe need to remove this part and the if/while change places*/
     else if (exp->type != "bool")
     {
@@ -590,7 +621,7 @@ MarkerM::MarkerM()
      *  in LLVM we must use labels.
      *  Therefore, instead of saving #line to this->quad-
      *  we generate a fresh label, emit it and save it as quad.
-    */
+     */
 
     this->quad = buffer.genLabel();
 }
