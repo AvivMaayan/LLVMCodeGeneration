@@ -36,7 +36,6 @@ string CodeBuffer::genReg(bool isGlobal)
 {
     string regPrefix = (isGlobal) ? "@" : "%";
     return regPrefix + "var_" + std::to_string(regCounter++);
-    ;
 }
 /**
  * writes command to the buffer, returns its location in the buffer
@@ -111,30 +110,6 @@ void CodeBuffer::labelEmit(string &labelName)
     */
     // emit("br label %" + labelName);
     emit(labelName + ":");
-}
-/**
- * Returns the location of the next address to print to
-int CodeBuffer::nextquad()
-{
-    // return buffer.size() - 1;
-    return buffer.size();
-}
- */
-
-void CodeBuffer::boolCode(Exp* exp)
-{
-}
-
-void CodeBuffer::numCode(const string &reg, const string &value)
-{
-}
-
-void CodeBuffer::assignCode(Exp* exp, int offset, string& type)
-{
-}
-
-void CodeBuffer::returnCode(string &returnType, string& reg)
-{
 }
 
 // ******** Methods to handle the global section ********** //

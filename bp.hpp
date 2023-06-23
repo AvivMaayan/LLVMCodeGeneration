@@ -46,14 +46,6 @@ public:
 
     // int nextquad();
 
-    void boolCode(Exp *exp);
-
-    void numCode(const string &reg, const string &value);
-
-    void assignCode(Exp* exp, int offset, string& type);
-
-    void returnCode(string &returnType, string& reg);
-
     // ******** Methods to handle the data section ******** //
     void emitGlobal(const string &dataLine);
     

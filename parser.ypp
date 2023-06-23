@@ -79,22 +79,19 @@ Statement: LBRACE
                                                                                         dynamic_cast<Exp*>($3));}
          | Call SC                                                  {$$ = new Statement(dynamic_cast<Call*>($1));}
          | RETURN SC                                                {$$ = new Statement("return");}
-         | RETURN Exp SC                                            {$$ = new Statement(false, dynamic_cast<Exp*>($2));}
-         | IF LPAREN isBool RPAREN Ps M
+         | RETURN Exp SC                                            {$$ = new Statement(dynamic_cast<Exp*>($2));}
+         | IF LPAREN isBool RPAREN Ps M                             
+            {
+                //$$ = new Statement(dynamic_cast<Exp*>($3), dynamic_cast<MarkerM*>($6));
+            }
             Statement
             {
                 symbolTable.popScope();
             }
-         | IF LPAREN isBool RPAREN Ps M
-            Statement ELSE N
+         | WHILE M LPAREN isBool RPAREN                             
             {
-                symbolTable.popScope();
-            } 
-            Ps M Statement
-            {
-                symbolTable.popScope();
+                //$$ = new Statement(dynamic_cast<MarkerM*>($2), dynamic_cast<Exp*>($4), dynamic_cast<MarkerM*>())
             }
-         | WHILE M LPAREN isBool RPAREN
             {
                 symbolTable.pushScope(true);
             } 
@@ -149,7 +146,10 @@ Exp: LPAREN Exp RPAREN                                              {$$ = new Ex
                                                                                   dynamic_cast<Exp*>($4));}
 
 Ps: %empty                                                          {symbolTable.pushScope(false);}
-isBool: Exp                                                         {$$ = new Statement(true, dynamic_cast<Exp*>($1));}
+isBool: Exp                                                         
+{ 
+    // $$ = new Statement(true, dynamic_cast<Exp*>($1));
+}
 M: %empty                                                           {$$ = new MarkerM();}
 N: %empty                                                           {$$ = new MarkerN();}
 
