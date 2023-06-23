@@ -19,13 +19,14 @@ public:
     /**
      * c'tor that simply assigns the parameters in the equivelant members
      */
-    Symbol(const string name, const string type, int offset = 0, bool isOverride = false,
+    Symbol(const string name, const string type, int offset = 0, bool isOverride = false, int version = -1,
            const string returnType = "", const vector<string> &parameters = {""}) : m_name(name),
                                                                                     m_type(type),
                                                                                     m_offset(offset),
                                                                                     m_isOverride(isOverride),
                                                                                     m_returnType(returnType),
-                                                                                    m_parameters(parameters){};
+                                                                                    m_parameters(parameters),
+                                                                                    m_version(version){};
 
     /**
      * d'tor that clears the vector. The rest of the fields aren't ptrs
@@ -67,6 +68,8 @@ public:
     bool m_isOverride;
     /* The offset of this symbol in the current scope stack*/
     int m_offset;
+    /* The serial number of the function. If it is -1 -> then this is not a function*/
+    int m_version;
     /* Parameters of the function */
     vector<string> m_parameters;
 };
@@ -193,6 +196,14 @@ public:
     int getSymbolOffset(const string name);
 
     /**
+     * Get the function Symbol m_version member
+     * @note: if the Symbol is not a function or doesn't exist: the returnrd value is -1
+     * @param name the name of the function to retrieve
+     * @return int - the m_version member of the function
+     */
+    int getFuncSymbolVersion(const string name);
+
+    /**
      * Return a boolean stating if exists a *function* symbol within any of the Scopes
      * @param name the function symbol to look for in the scope
      * @return True - the symbol exist
@@ -281,6 +292,8 @@ private:
     vector<PScope> m_scopes;
     /* Stack for the offsets as was shown in the tutorial*/
     stack<int> m_offsets;
+    /* Serial number distributer*/
+    int m_distributer;
 };
 using PSymbolTable = SymbolTable *;
 
