@@ -2,10 +2,17 @@ void main() {
 	// int life = 4 * 10 + 2;
 	bool flag2;
 	flag2 = ((4 > 5) or (10 != 10)) and (5 == 5);
-	if(flag2){
-		
-	}
-	else {
+	// bool flag2 = ((4 > 5) or (10 != 10)) and (5 == 5);
 
-	}
+	return;
+}
+
+bool nit(bool gay)
+{
+	return gay;
+}
+
+bool nit2(int notgay)
+{
+	int gay = 1 - notgay;
 }

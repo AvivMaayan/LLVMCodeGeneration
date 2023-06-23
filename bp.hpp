@@ -34,6 +34,10 @@ public:
 
     int emit(const std::string &command);
 
+    void emitLeftBrace() { emit("{"); };
+    void emitRightBrace() { emit("}"); };
+    void returnFunc(string ret_type);
+
     static vector<LabelLocation> makelist(LabelLocation item);
 
     static vector<LabelLocation> merge(const vector<LabelLocation> &l1, const vector<LabelLocation> &l2);
@@ -44,7 +48,7 @@ public:
 
     void labelEmit(string &labelName);
 
-    // int nextquad();
+    LabelLocation emitJump();
 
     // ******** Methods to handle the data section ******** //
     void emitGlobal(const string &dataLine);

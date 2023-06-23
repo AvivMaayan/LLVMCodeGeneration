@@ -19,13 +19,14 @@ public:
     /**
      * c'tor that simply assigns the parameters in the equivelant members
      */
-    Symbol(const string name, const string type, int offset = 0, bool isOverride = false,
+    Symbol(const string name, const string type, int offset = 0, bool isOverride = false, int version = -1,
            const string returnType = "", const vector<string> &parameters = {""}) : m_name(name),
                                                                                     m_type(type),
                                                                                     m_offset(offset),
                                                                                     m_isOverride(isOverride),
                                                                                     m_returnType(returnType),
-                                                                                    m_parameters(parameters){};
+                                                                                    m_parameters(parameters),
+                                                                                    m_version(version){};
 
     /**
      * d'tor that clears the vector. The rest of the fields aren't ptrs
@@ -67,6 +68,8 @@ public:
     bool m_isOverride;
     /* The offset of this symbol in the current scope stack*/
     int m_offset;
+    /* The serial number of the function. If it is -1 -> then this is not a function*/
+    int m_version;
     /* Parameters of the function */
     vector<string> m_parameters;
 };
@@ -79,7 +82,8 @@ public:
     /*default c'tor and d'tor since the values aren't known yet*/
     Scope(bool isLoop, string returnType = "") : m_symbols(),
                                                  m_isLoop(isLoop),
-                                                 m_returnType(returnType){};
+                                                 m_returnType(returnType),
+                                                 m_rbp{""}{};
 
     ~Scope();
 
@@ -174,8 +178,10 @@ public:
      * @param returnType the return type of the function
      * @param isOverride bool indicating if this function is declared with "override"
      * @param parametersTypes vector of the parameters' TYPES that this function receives
+     * 
+     * @return int - the version number of the function inserted
      */
-    void insertFuncSymbol(const string name, string returnType, bool isOverride, const vector<string> &parametersTypes);
+    int insertFuncSymbol(const string name, string returnType, bool isOverride, const vector<string> &parametersTypes);
 
     /**
      * Return a boolean stating if exists a symbol within any of the Scopes
@@ -191,6 +197,14 @@ public:
      * @return int - the offset of the symbol
     */
     int getSymbolOffset(const string name);
+
+    /**
+     * Get the function Symbol m_version member
+     * @note: if the Symbol is not a function or doesn't exist: the returnrd value is -1
+     * @param name the name of the function to retrieve
+     * @return int - the m_version member of the function
+     */
+    int getFuncSymbolVersion(const string name);
 
     /**
      * Return a boolean stating if exists a *function* symbol within any of the Scopes
@@ -254,6 +268,13 @@ public:
     string getCurrentRbp();
 
     /**
+     * Set the rbp of the current scope (the last one)
+     * 
+     * @param newRbp - reg holding the address of the rbp
+     */
+    void setCurrentRbp(string newRbp);
+
+    /**
      * Checks if there exists a symbol named "name" in the table, and if it also
      * a with value of "True" in the isOverride member
      * @param name the name of the symbol to look for
@@ -281,6 +302,8 @@ private:
     vector<PScope> m_scopes;
     /* Stack for the offsets as was shown in the tutorial*/
     stack<int> m_offsets;
+    /* Serial number distributer*/
+    int m_distributer;
 };
 using PSymbolTable = SymbolTable *;
 

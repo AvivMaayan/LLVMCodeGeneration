@@ -71,7 +71,6 @@ bool Scope::isSymbolExist(const string name)
     return false;
 }
 
-
 bool Scope::getSymbol(const string name, PSymbol *pSymbolOut)
 {
     if (!isSymbolExist(name))
@@ -117,7 +116,7 @@ bool Scope::getFuncSymbol(const string name, const vector<string> &parametersTyp
 
 /* CLASS SymbolTable */
 
-SymbolTable::SymbolTable() : m_scopes(), m_offsets()
+SymbolTable::SymbolTable() : m_scopes(), m_offsets(), m_distributer(0)
 {
     /* Add a new non-loop (hence the false) Scope*/
     pushScope(false);
@@ -139,7 +138,7 @@ void SymbolTable::pushScope(bool isLoop, string returnType)
 {
     /* Allocate a new empty Scope*/
     PScope scope = new Scope(isLoop, returnType);
-    string rbp; 
+    string rbp;
     /* Handling for the first Scope inserted*/
     if (m_offsets.empty())
     {
@@ -199,16 +198,21 @@ int SymbolTable::insertSymbol(const string name, string type)
     return offset;
 }
 
-void SymbolTable::insertFuncSymbol(const string name, string returnType, bool isOverride,
+int SymbolTable::insertFuncSymbol(const string name, string returnType, bool isOverride,
                                    const vector<string> &parametersTypes)
 {
     assert(m_offsets.size() > 0 && m_scopes.size() > 0);
     /* Get current offset*/
     int offset = m_offsets.top();
     /* Create the new function symbol*/
-    PSymbol pFuncSymbol = new Symbol(name, "func", 0, isOverride, returnType, parametersTypes);
+    int version = m_distributer;
+    PSymbol pFuncSymbol = new Symbol(name, "func", 0, isOverride, version, returnType, parametersTypes);
+    /* Update the distributer*/
+    m_distributer++;
     /* Add it to the current scope*/
     m_scopes.back()->insertSymbol(pFuncSymbol);
+    /* return the version of the function inserted*/
+    return version;
 }
 
 bool SymbolTable::isSymbolExist(const string name)
@@ -240,6 +244,23 @@ int SymbolTable::getSymbolOffset(const string name)
     }
     /* not supposed to get here*/
     assert(false);
+}
+
+int SymbolTable::getFuncSymbolVersion(const string name)
+{
+    PSymbol pSymbol;
+    /* Search all scopes one at a time from the begining for the symbol*/
+    for (auto it = m_scopes.begin(); it != m_scopes.end(); it++)
+    {
+        /* (*it) is the current scope*/
+        if ((*it)->getSymbol(name, &pSymbol) == true)
+        {
+            /* we found the symbol*/
+            return pSymbol->m_version;
+        }
+    }
+    /* the symbol doesn't exist*/
+    return -1;
 }
 
 bool SymbolTable::isFuncSymbolNameExist(const string name)
@@ -342,10 +363,19 @@ string SymbolTable::getClosestReturnType()
 
 string SymbolTable::getCurrentRbp()
 {
-    PScope currentScope = *(m_scopes.rend());
+    PScope currentScope = m_scopes.back();
     /* the m_scopes is not suppose to be empty. if so, it's a bug*/
     assert(currentScope != nullptr);
     return currentScope->m_rbp;
+}
+
+void SymbolTable::setCurrentRbp(string newRbp)
+{
+    PScope currentScope = m_scopes.back();
+    /* the m_scopes is not suppose to be empty. if so, it's a bug*/
+    assert(currentScope != nullptr);
+    /* update the rbp*/
+    currentScope->m_rbp = newRbp; 
 }
 
 bool SymbolTable::isSymbolOverride(const string name)
@@ -385,7 +415,8 @@ string SymbolTable::insertArgs(vector<string> types, vector<string> names)
     for (int i = 0; i < types.size(); i++)
     {
         /* if already exists*/
-        if(isSymbolExist(names[i])) {
+        if (isSymbolExist(names[i]))
+        {
             return names[i];
         }
         /* Create the new function symbol*/

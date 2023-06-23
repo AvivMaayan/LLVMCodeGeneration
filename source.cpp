@@ -92,10 +92,11 @@ Exp::Exp(bool is_not, const Exp *bool_exp)
         this->true_list = bool_exp->false_list;
         this->false_list = bool_exp->true_list;
     }
-    else {
-    this->value = bool_exp->value;
-    this->true_list = bool_exp->true_list;
-    this->false_list = bool_exp->false_list;
+    else
+    {
+        this->value = bool_exp->value;
+        this->true_list = bool_exp->true_list;
+        this->false_list = bool_exp->false_list;
     }
 }
 
@@ -243,6 +244,29 @@ string Exp::loadGetVar(int offset)
 
 Exp::Exp(const Call *call) : Node(call->return_type) {}
 
+void Exp::evaluateBoolToReg()
+{
+    assert(this->type == "bool");
+    assert(!this->in_reg());
+
+    string true_label = buffer.genLabel();
+    LabelLocation true_jump_to_phi_loc = buffer.emitJump();
+    buffer.bpatch(this->true_list, true_label);
+
+    string false_label = buffer.genLabel();
+    LabelLocation false_jump_to_phi_loc = buffer.emitJump();
+    buffer.bpatch(this->false_list, false_label);
+
+    string phi_label = buffer.genLabel();
+    vector<LabelLocation> phi_jump_locations = buffer.merge(
+        buffer.makelist(true_jump_to_phi_loc),
+        buffer.makelist(false_jump_to_phi_loc));
+    buffer.bpatch(phi_jump_locations, phi_label);
+
+    this->reg = buffer.genReg();
+    buffer.emit(this->reg + " = phi i32 [1, %" + true_label + "], [0, %" + false_label + "]");
+}
+
 ExpList::ExpList(const Exp *expression)
 {
     this->exp_list.push_back(expression->type);
@@ -376,7 +400,7 @@ Statement::Statement(Type *type, Id *id, Exp *exp) : Node()
     /* if we got here this statement is ok. insert the new symbol*/
     int offset = symbolTable.insertSymbol(id->name, type->type);
     /******************* code generation: *****************************/
-    assignCode(exp, offset, type->type == "bool");
+    assignCode(exp, offset);
 }
 
 /* ID ASSIGN Exp SC*/
@@ -406,7 +430,7 @@ Statement::Statement(Id *id, Exp *exp) : Node()
     string type = symbolTable.getSymbolType(id->name);
     /* the case of an assignemnt to a parameter isn't supposed to be checked*/
     assert(offset >= 0);
-    assignCode(exp, offset, type == "bool");
+    assignCode(exp, offset);
 }
 
 /* Call SC*/
@@ -446,11 +470,13 @@ Statement::Statement(const string operation)
         }
         /* 'break' or 'continue' both require a jump that will later be backpatched*/
         int address = buffer.emit("br label @");
-        if(operation == "break") {
+        if (operation == "break")
+        {
             /* create break list for this break command*/
-            this->break_list = buffer.makelist(LabelLocation(address, FIRST)); 
+            this->break_list = buffer.makelist(LabelLocation(address, FIRST));
         }
-        else { /* the operation is continue*/
+        else
+        { /* the operation is continue*/
             /* create continue list for this continue command*/
             this->cont_list = buffer.makelist(LabelLocation(address, FIRST));
         }
@@ -460,50 +486,126 @@ Statement::Statement(const string operation)
 /* RETURN Exp SC*/
 Statement::Statement(Exp *exp)
 {
-    buffer.genLabel();
+    /* check for the return type (has to be the same as exp)*/
+    if (!symbolTable.checkTypes(symbolTable.getClosestReturnType(), exp->type))
+    {
+        output::errorMismatch(yylineno);
+        exit(1);
+    }
+    /******************* code generation: *****************************/
+    returnCode(exp);
 }
 
-// /* RETURN Exp SC --or-- IF LPAREN Exp RPAREN Statement
-//  * --or-- IF LPAREN Exp RPAREN Statement ELSE Statement
-//  * --or-- WHILE LPAREN Exp RPAREN Statement*/
-// Statement::Statement(bool checkIfExpIsBoolean, Exp *exp)
-// {
-//     /* check if this is the [RETURN Exp SC] case*/
-//     if (checkIfExpIsBoolean == false)
-//     {
-//         /* check for the return type (has to be the same as exp)*/
-//         if (!symbolTable.checkTypes(symbolTable.getClosestReturnType(), exp->type))
-//         {
-//             output::errorMismatch(yylineno);
-//             exit(1);
-//         }
-//         /******************* code generation: *****************************/
-//         string returnType = symbolTable.getClosestReturnType();
-//         string rbp = symbolTable.getCurrentRbp();
-//         if(exp->type == "bool") {
-//             /* perform some tasks*/
-//             /* need to check here if the exp is a variable?*/
-//         }
-//         else {
-//             /* print the return command*/
-//             buffer.emit("ret " + returnType + " " + exp->reg);
-//         }
-        
-//     }
-//     /* maybe need to remove this part and the if/while change places*/
-//     else if (exp->type != "bool")
-//     {
-//         output::errorMismatch(yylineno);
-//         exit(1);
-//     }
-// }
+/* IF LPAREN Exp RPAREN M Statement*/
+Statement::Statement(Exp *exp, MarkerM *m, Statement *statement)
+{
+    /* exp is a boolean, no need to check*/
+    /* merge the break and continue lists with the ones of the statement*/
+    this->break_list = buffer.merge(break_list, statement->break_list);
+    this->cont_list = buffer.merge(cont_list, statement->cont_list);
+
+    /**
+     * backpatch the true_list of the expression (the condition) with the stmts
+     * within the "if" scope
+     * */
+    buffer.bpatch(exp->true_list, m->quad);
+
+    /* generate the label that states the "if" condition is false, and emit it*/
+    string falseLabel = buffer.genLabel();
+    /* backpatch the false and next list of the expression (the condition)*/
+    buffer.bpatch(exp->false_list, falseLabel);
+    buffer.bpatch(exp->next_list, falseLabel);
+}
+
+/* IF LPAREN Exp RPAREN M Statement ELSE N M Statement*/
+Statement::Statement(Exp *exp, MarkerM *trueCondition, Statement *ifStatement, MarkerM *falseCondition, Statement *elseStatement)
+{
+    /* exp is a boolean, no need to check*/
+    /**
+     * merge the continue and break lists of both statements, since when this if-else is within a loop,
+     * both continue and break need to jump to the same location.
+    */
+    cont_list =  buffer.merge(ifStatement->cont_list, elseStatement->cont_list);
+    break_list = buffer.merge(ifStatement->break_list, elseStatement->break_list);
+    /* backpatch the true list of the condition to jump to the inner part of the if block*/
+    buffer.bpatch(exp->true_list, trueCondition->quad);
+    /* backpatch the false list of the condition to jump to the inner part of the else block*/
+    buffer.bpatch(exp->false_list, falseCondition->quad);
+    /* the next operation to perform is a new label, outside of both if and else blocks*/
+    string outLabel = buffer.genLabel();
+    buffer.bpatch(exp->next_list, outLabel);
+}
+
+/* WHILE LPAREN M Exp RPAREN M Statement*/
+Statement::Statement(MarkerM *loopCondition, Exp *exp, MarkerM *loopStmts, Statement *statement)
+{
+    /* exp is a boolean, no need to check*/
+    /* emit the correct label for the condition of the loop*/
+    string loopLabel = loopCondition->quad;
+    if (loopLabel[0] != '%' && loopLabel[0] != '@')
+    {
+        buffer.emit("br label %" + loopLabel);
+    }
+    else
+    {
+        buffer.emit("br label " + loopLabel);
+    }
+    /* emit another label for getting out of the loop*/
+    string outLabel = buffer.genLabel();
+    /* if the condition is true, bp to jump to the statements*/
+    buffer.bpatch(exp->true_list, loopStmts->quad);
+    /* otherwise, jump out of the loop*/
+    buffer.bpatch(exp->false_list, outLabel);
+    buffer.bpatch(exp->next_list, outLabel);
+    /* the breaks within the loop should go out of the loop*/
+    buffer.bpatch(statement->break_list, outLabel);
+    /* the continues within the loop should go back to the condition*/
+    buffer.bpatch(statement->cont_list, loopCondition->quad);
+}
+
+/* methods for creating the code */
 
 /**
- * Merge the lists of the given statement with this one.
- * @param statement - the stmt to merge its list to ours
+ * creates and emits the code for storing a variable within a reg into an address on the stack. 
+ * @note: if the exp given is NOT an id variable, Aviv wrote evaluation function to insert its value in a reg
+ * @param exp the expression to insert to the stack
+ * @param offset the offset after the rbp that this variable needs to be inserted to
  */
-void Statement::mergeStatements(Statement *statement)
+void Statement::assignCode(Exp *exp, int offset)
 {
+    if (!exp->in_reg())
+    {
+        assert(exp->type == "bool");
+        exp->evaluateBoolToReg();
+    }
+    buffer.storeVariable(symbolTable.getCurrentRbp(), offset, exp->reg);
+}
+
+/**
+ * creates and emits a code for a return command in LLVM 
+ * 
+ * @param exp the expression to return in the LLVM code
+ */
+void Statement::returnCode(Exp *exp)
+{
+    /* convert return type to LLVM syntax*/
+    string returnType = symbolTable.getClosestReturnType();
+    if (returnType == "string")
+    {
+        returnType = "i8*";
+    }
+    else
+    {
+        returnType = "i32";
+    }
+    /* make sure exp->reg has the correct result*/
+    if (!exp->in_reg())
+    {
+        assert(exp->type == "bool");
+        exp->evaluateBoolToReg();
+    }
+    /* emit the return command*/
+    buffer.emit("ret " + returnType + " " + exp->reg);
 }
 
 FuncDecl::FuncDecl(const Override *override_node,
@@ -566,7 +668,7 @@ FuncDecl::FuncDecl(const Override *override_node,
         }
     }
 
-    symbolTable.insertFuncSymbol(name, ret_type, override, arg_types);
+    int version = symbolTable.insertFuncSymbol(name, ret_type, override, arg_types);
 
     this->name = name;
     this->type = ret_type;
@@ -582,6 +684,39 @@ FuncDecl::FuncDecl(const Override *override_node,
         output::errorDef(yylineno, errorName);
         exit(1);
     }
+
+    buffer.emit("define " + returnTypeCode(ret_type)
+                + " " + funcNameCode(name, version)
+                + formalsCode(arg_types));
+    buffer.emitLeftBrace();
+    symbolTable.setCurrentRbp(buffer.allocFunctionRbp());
+}
+
+string FuncDecl::returnTypeCode(string ret_type)
+{
+    if (ret_type == "void")
+        return "void";
+    if (ret_type == "string")
+        return "i8*";
+    return "i32";
+}
+
+string FuncDecl::funcNameCode(string name, int version)
+{
+    return "@" + name + "_" + std::to_string(version);
+}
+
+string FuncDecl::formalsCode(vector<string> formals_types)
+{
+    string formals_str = "(";
+
+    for (string formal_type : formals_types)
+    {
+        formals_str += (formal_type == "string") ? "i8*" : "i32";
+        formals_str += ", ";
+    }
+
+    return formals_str.substr(0, formals_str.size() - 2) + ")";
 }
 
 MarkerM::MarkerM()
@@ -590,7 +725,7 @@ MarkerM::MarkerM()
      *  in LLVM we must use labels.
      *  Therefore, instead of saving #line to this->quad-
      *  we generate a fresh label, emit it and save it as quad.
-    */
+     */
 
     this->quad = buffer.genLabel();
 }
@@ -599,4 +734,18 @@ MarkerN::MarkerN()
 {
     int address = buffer.emit("br label @");
     this->next_list = buffer.makelist(LabelLocation(address, FIRST));
+}
+
+void isBool(Exp *exp)
+{
+    if (exp->type != "bool")
+    {
+        output::errorMismatch(yylineno);
+        exit(1);
+    }
+}
+
+void mergeNextList(Exp *exp, MarkerN *n)
+{
+    exp->next_list = buffer.merge(n->next_list, exp->next_list);
 }

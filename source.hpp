@@ -28,7 +28,7 @@ class MarkerM : public Node
 public:
     MarkerM();
     virtual ~MarkerM() = default;
-    string quad; 
+    string quad;
 };
 
 class MarkerN : public Node
@@ -36,7 +36,7 @@ class MarkerN : public Node
 public:
     MarkerN();
     virtual ~MarkerN() = default;
-    vector<LabelLocation> next_list; 
+    vector<LabelLocation> next_list;
 };
 
 class Id : public Node
@@ -144,13 +144,14 @@ private:
 
     bool isBooleanExp(const Exp *exp) { return (exp->type == "bool"); }
 
-    string getArgReg(int offset) { return "%" + std::to_string((1- offset)); }
+    string getArgReg(int offset) { return "%" + std::to_string((- 1 - offset)); }
 
     string loadGetVar(int offset);
 
 public:
     string value;
     string reg;
+    bool in_reg() { return reg != ""; };
     string code;
     vector<LabelLocation> true_list;
     vector<LabelLocation> false_list;
@@ -176,6 +177,8 @@ public:
     Exp(const Id *id);
 
     Exp(const Call *call);
+
+    void evaluateBoolToReg();
 
     virtual ~Exp() = default;
 };
@@ -264,25 +267,19 @@ public:
     /* RETURN Exp SC*/
     Statement(Exp *exp);
     /* IF LPAREN Exp RPAREN M Statement*/
-    Statement(Exp *exp, MarkerM* m);
+    Statement(Exp *exp, MarkerM *m, Statement *statement);
     /* IF LPAREN Exp RPAREN M Statement ELSE N M Statement*/
-    Statement(Exp *exp, MarkerM* m1, MarkerN* n, MarkerM* m2);
-    /* WHILE M LPAREN Exp RPAREN M Statement*/
-    Statement(MarkerM* m1, Exp *exp, MarkerM* m2);
+    Statement(Exp *exp, MarkerM *trueCondition, Statement* ifStatement, MarkerM *falseCondition, Statement* elseStatement);            
+    /* WHILE LPAREN M Exp RPAREN M Statement*/            
+    Statement(MarkerM *loopCondition, Exp *exp, MarkerM *loopStmts, Statement *statement);
 
     virtual ~Statement() = default;
 
     /* methods for creating the code */
+    
+    void assignCode(Exp *exp, int offset);
 
-    void mergeStatements(Statement *statement);
-
-    void boolCode(Exp *exp);
-
-    void numCode(const string &reg, const string &value);
-
-    void assignCode(Exp* exp, int offset, bool isBool);
-
-    void returnCode(string &returnType, string& reg);
+    void returnCode(Exp *exp);
 };
 
 class FuncDecl : public Node
@@ -295,6 +292,10 @@ public:
              const RetType *ret_type_node,
              const Id *id_node,
              const FormalList *formals_node);
+
+    string returnTypeCode(string ret_type);
+    string funcNameCode(string name, int version);
+    string formalsCode(vector<string> formals_types);
 
     virtual ~FuncDecl() = default;
 };
