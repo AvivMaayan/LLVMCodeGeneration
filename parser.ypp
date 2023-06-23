@@ -63,14 +63,15 @@ FormalsList: FormalDecl                                             {$$ = new Fo
 FormalDecl:  Type ID                                                {$$ = new FormalDecl(dynamic_cast<Type*>($1),
                                                                                          dynamic_cast<Id*>($2));}
 
-Statements: Statement                                               {}
-          | Statements Statement                                    {}
+Statements: Statement                                               {$$ = new Statements(dynamic_cast<Statement*>($1));}
+          | Statements Statement                                    {$$ = new Statements(dynamic_cast<Statements*>($1), dynamic_cast<Statement*>($2));}
 
 Statement: LBRACE 
             {symbolTable.pushScope(false);} 
             Statements 
             {symbolTable.popScope();} 
-            RBRACE                               
+            RBRACE 
+            { $$ = new Statement(); dynamic_cast<Statement*>($$)->mergeLists(dynamic_cast<Statements*>($3)); }                              
          | Type ID SC                                               {$$ = new Statement(dynamic_cast<Type*>($1),
                                                                                         dynamic_cast<Id*>($2));}
          | Type ID ASSIGN Exp SC                                    {$$ = new Statement(dynamic_cast<Type*>($1),

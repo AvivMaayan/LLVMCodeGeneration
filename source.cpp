@@ -365,8 +365,25 @@ vector<string> FormalList::getNamesVector() const
     return arg_names;
 }
 
+Statements::Statements(Statement *statement) 
+{
+    /* merge the lists of the Statements and Statement*/
+    this->break_list = buffer.merge(this->break_list, statement->break_list);
+    this->cont_list = buffer.merge(this->cont_list, statement->cont_list);
+    delete statement;
+}
+
+Statements::Statements(Statements *statements, Statement *statement) : Node(), cont_list(), break_list()
+{
+    /* merge the lists of the Statements and Statement that were given into this one*/
+    this->break_list = buffer.merge(statements->break_list, statement->break_list);
+    this->cont_list = buffer.merge(statements->cont_list, statement->cont_list);
+    delete statement;
+    delete statements;
+}
+
 /* Type ID SC --- int x; */
-Statement::Statement(Type *type, Id *id) : Node()
+Statement::Statement(Type *type, Id *id) : Node(), break_list(), cont_list()
 {
     /* check if symbol already exists with this name*/
     if (symbolTable.isSymbolExist(id->name))
@@ -382,7 +399,7 @@ Statement::Statement(Type *type, Id *id) : Node()
 }
 
 /* Type ID ASSIGN Exp SC --- int x = 6*/
-Statement::Statement(Type *type, Id *id, Exp *exp) : Node()
+Statement::Statement(Type *type, Id *id, Exp *exp) : Node(), break_list(), cont_list()
 {
     /* check if symbol already exists*/
     if (symbolTable.isSymbolExist(id->name))
@@ -404,7 +421,7 @@ Statement::Statement(Type *type, Id *id, Exp *exp) : Node()
 }
 
 /* ID ASSIGN Exp SC*/
-Statement::Statement(Id *id, Exp *exp) : Node()
+Statement::Statement(Id *id, Exp *exp) : Node(), break_list(), cont_list()
 {
     /* if the symbol doesn't exist it is illegal to assign*/
     if (symbolTable.isSymbolExist(id->name) == false)
@@ -442,7 +459,7 @@ Statement::Statement(Call *call) : Node()
 }
 
 /* RETURN SC --or-- BREAK SC --or-- CONTINUE SC*/
-Statement::Statement(const string operation)
+Statement::Statement(const string operation) : Node(), break_list(), cont_list()
 {
     if (operation == "return")
     {
@@ -484,7 +501,7 @@ Statement::Statement(const string operation)
 }
 
 /* RETURN Exp SC*/
-Statement::Statement(Exp *exp)
+Statement::Statement(Exp *exp) : Node(), break_list(), cont_list()
 {
     /* check for the return type (has to be the same as exp)*/
     if (!symbolTable.checkTypes(symbolTable.getClosestReturnType(), exp->type))
@@ -496,8 +513,20 @@ Statement::Statement(Exp *exp)
     returnCode(exp);
 }
 
+/* merge statements lists*/
+Statement::Statement() : Node(), break_list(), cont_list()
+{
+}
+
+void Statement::mergeLists(Statements *statements)
+{
+    break_list = buffer.merge(break_list, statements->break_list);
+    cont_list = buffer.merge(cont_list, statements->cont_list);
+    delete statements;
+}
+
 /* IF LPAREN Exp RPAREN M Statement*/
-Statement::Statement(Exp *exp, MarkerM *m, Statement *statement)
+Statement::Statement(Exp *exp, MarkerM *m, Statement *statement) : Node(), break_list(), cont_list()
 {
     /* exp is a boolean, no need to check*/
     /* merge the break and continue lists with the ones of the statement*/
@@ -518,15 +547,15 @@ Statement::Statement(Exp *exp, MarkerM *m, Statement *statement)
 }
 
 /* IF LPAREN Exp RPAREN M Statement ELSE N M Statement*/
-Statement::Statement(Exp *exp, MarkerM *trueCondition, Statement *ifStatement, MarkerM *falseCondition, Statement *elseStatement)
+Statement::Statement(Exp *exp, MarkerM *trueCondition, Statement *ifStatement, MarkerM *falseCondition, Statement *elseStatement) : Node(), break_list(), cont_list()
 {
     /* exp is a boolean, no need to check*/
     /**
      * merge the continue and break lists of both statements, since when this if-else is within a loop,
      * both continue and break need to jump to the same location.
-    */
-    cont_list =  buffer.merge(ifStatement->cont_list, elseStatement->cont_list);
-    break_list = buffer.merge(ifStatement->break_list, elseStatement->break_list);
+     */
+    this->cont_list = buffer.merge(ifStatement->cont_list, elseStatement->cont_list);
+    this->break_list = buffer.merge(ifStatement->break_list, elseStatement->break_list);
     /* backpatch the true list of the condition to jump to the inner part of the if block*/
     buffer.bpatch(exp->true_list, trueCondition->quad);
     /* backpatch the false list of the condition to jump to the inner part of the else block*/
@@ -537,7 +566,7 @@ Statement::Statement(Exp *exp, MarkerM *trueCondition, Statement *ifStatement, M
 }
 
 /* WHILE LPAREN M Exp RPAREN M Statement*/
-Statement::Statement(MarkerM *loopCondition, Exp *exp, MarkerM *loopStmts, Statement *statement)
+Statement::Statement(MarkerM *loopCondition, Exp *exp, MarkerM *loopStmts, Statement *statement) : Node(), break_list(), cont_list()
 {
     /* exp is a boolean, no need to check*/
     /* emit the correct label for the condition of the loop*/
@@ -566,7 +595,7 @@ Statement::Statement(MarkerM *loopCondition, Exp *exp, MarkerM *loopStmts, State
 /* methods for creating the code */
 
 /**
- * creates and emits the code for storing a variable within a reg into an address on the stack. 
+ * creates and emits the code for storing a variable within a reg into an address on the stack.
  * @note: if the exp given is NOT an id variable, Aviv wrote evaluation function to insert its value in a reg
  * @param exp the expression to insert to the stack
  * @param offset the offset after the rbp that this variable needs to be inserted to
@@ -582,8 +611,8 @@ void Statement::assignCode(Exp *exp, int offset)
 }
 
 /**
- * creates and emits a code for a return command in LLVM 
- * 
+ * creates and emits a code for a return command in LLVM
+ *
  * @param exp the expression to return in the LLVM code
  */
 void Statement::returnCode(Exp *exp)
@@ -685,9 +714,7 @@ FuncDecl::FuncDecl(const Override *override_node,
         exit(1);
     }
 
-    buffer.emit("define " + returnTypeCode(ret_type)
-                + " " + funcNameCode(name, version)
-                + formalsCode(arg_types));
+    buffer.emit("define " + returnTypeCode(ret_type) + " " + funcNameCode(name, version) + formalsCode(arg_types));
     buffer.emitLeftBrace();
     symbolTable.setCurrentRbp(buffer.allocFunctionRbp());
 }

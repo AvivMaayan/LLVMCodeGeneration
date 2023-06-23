@@ -7,12 +7,11 @@ void main() {
 	return;
 }
 
-bool nit(bool gay)
+bool nit()
 {
-	return gay;
-}
-
-bool nit2(int notgay)
-{
-	int gay = 1 - notgay;
+	int x = 5;
+	if(x>3) {
+		return true;
+	}
+	return false;
 }

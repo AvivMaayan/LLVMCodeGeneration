@@ -144,7 +144,7 @@ private:
 
     bool isBooleanExp(const Exp *exp) { return (exp->type == "bool"); }
 
-    string getArgReg(int offset) { return "%" + std::to_string((- 1 - offset)); }
+    string getArgReg(int offset) { return "%" + std::to_string((-1 - offset)); }
 
     string loadGetVar(int offset);
 
@@ -248,6 +248,21 @@ public:
     vector<string> getTypesVector() const;
     vector<string> getNamesVector() const;
 };
+/* FWD declaration*/
+class Statement;
+
+class Statements : public Node
+{
+public:
+    vector<LabelLocation> cont_list = {};
+    vector<LabelLocation> break_list = {};
+    /* Statements: Statement*/
+    Statements(Statement *statement);
+    /* Statements: Statements Statement*/
+    Statements(Statements *statements, Statement *statement);
+
+    ~Statements() = default;
+};
 
 class Statement : public Node
 {
@@ -266,17 +281,20 @@ public:
     Statement(const string operation);
     /* RETURN Exp SC*/
     Statement(Exp *exp);
+    /* merge statements lists*/
+    Statement();
+    void mergeLists(Statements *statements);
     /* IF LPAREN Exp RPAREN M Statement*/
     Statement(Exp *exp, MarkerM *m, Statement *statement);
     /* IF LPAREN Exp RPAREN M Statement ELSE N M Statement*/
-    Statement(Exp *exp, MarkerM *trueCondition, Statement* ifStatement, MarkerM *falseCondition, Statement* elseStatement);            
-    /* WHILE LPAREN M Exp RPAREN M Statement*/            
+    Statement(Exp *exp, MarkerM *trueCondition, Statement *ifStatement, MarkerM *falseCondition, Statement *elseStatement);
+    /* WHILE LPAREN M Exp RPAREN M Statement*/
     Statement(MarkerM *loopCondition, Exp *exp, MarkerM *loopStmts, Statement *statement);
 
     virtual ~Statement() = default;
 
     /* methods for creating the code */
-    
+
     void assignCode(Exp *exp, int offset);
 
     void returnCode(Exp *exp);
@@ -299,5 +317,9 @@ public:
 
     virtual ~FuncDecl() = default;
 };
+
+/* global functions*/
+void isBool(Exp *exp);
+void mergeNextList(Exp *exp, MarkerN *n);
 
 #endif
