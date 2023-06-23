@@ -100,6 +100,11 @@ vector<LabelLocation> CodeBuffer::merge(const vector<LabelLocation> &l1, const v
     return newList;
 }
 
+LabelLocation CodeBuffer::emitJump()
+{
+    return LabelLocation(emit("br label @"), FIRST);
+}
+
 /**
  * Emit two lines needed for generating a label jump.
  * @param labelName the name of the label to emit

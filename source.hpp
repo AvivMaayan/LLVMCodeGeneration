@@ -151,6 +151,7 @@ private:
 public:
     string value;
     string reg;
+    bool in_reg() { return reg != ""; };
     string code;
     vector<LabelLocation> true_list;
     vector<LabelLocation> false_list;
@@ -176,6 +177,8 @@ public:
     Exp(const Id *id);
 
     Exp(const Call *call);
+
+    void evaluateBoolToReg();
 
     virtual ~Exp() = default;
 };
