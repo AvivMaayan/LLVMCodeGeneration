@@ -493,27 +493,7 @@ Statement::Statement(Exp *exp)
         exit(1);
     }
     /******************* code generation: *****************************/
-    /* convert return type to LLVM syntax*/
-    string returnType = symbolTable.getClosestReturnType();
-    if (returnType == "string")
-    {
-        returnType = "i8*";
-    }
-    else
-    {
-        returnType = "i32";
-    }
-    /* have different treatments for variables and non variables*/
-    if (exp->type == "bool")
-    {
-        /* perform some tasks*/
-        /* need to check here if the exp is a variable?*/
-    }
-    else
-    {
-        /* print the return command*/
-        buffer.emit("ret " + returnType + " " + exp->reg);
-    }
+    returnCode(exp);
 }
 
 // /* RETURN Exp SC --or-- IF LPAREN Exp RPAREN Statement
@@ -564,9 +544,32 @@ void Statement::assignCode(Exp *exp, int offset)
 {
     if (!exp->in_reg())
     {
+        assert(exp->type == "bool");
         exp->evaluateBoolToReg();
     }
     buffer.storeVariable(symbolTable.getCurrentRbp(), offset, exp->reg);
+}
+
+void Statement::returnCode(Exp *exp)
+{
+    /* convert return type to LLVM syntax*/
+    string returnType = symbolTable.getClosestReturnType();
+    if (returnType == "string")
+    {
+        returnType = "i8*";
+    }
+    else
+    {
+        returnType = "i32";
+    }
+    /* make sure exp->reg has the correct result*/
+    if (!exp->in_reg())
+    {
+        assert(exp->type == "bool");
+        exp->evaluateBoolToReg();
+    }
+    /* emit the return command*/
+    buffer.emit("ret " + returnType + " " + exp->reg);
 }
 
 FuncDecl::FuncDecl(const Override *override_node,

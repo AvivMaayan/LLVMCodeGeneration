@@ -285,7 +285,7 @@ public:
 
     void assignCode(Exp *exp, int offset);
 
-    void returnCode(string &returnType, string &reg);
+    void returnCode(Exp *exp);
 };
 
 class FuncDecl : public Node
