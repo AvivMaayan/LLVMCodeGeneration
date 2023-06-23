@@ -43,6 +43,7 @@ FuncDecl: OverRide RetType ID LPAREN Formals
           }
           RPAREN LBRACE Statements RBRACE
           {
+            buffer.returnFunc(symbolTable.getClosestReturnType());
             symbolTable.popScope();
           }
 

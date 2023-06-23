@@ -668,7 +668,7 @@ FuncDecl::FuncDecl(const Override *override_node,
         }
     }
 
-    version = symbolTable.insertFuncSymbol(name, ret_type, override, arg_types);
+    int version = symbolTable.insertFuncSymbol(name, ret_type, override, arg_types);
 
     this->name = name;
     this->type = ret_type;
@@ -685,7 +685,11 @@ FuncDecl::FuncDecl(const Override *override_node,
         exit(1);
     }
 
-    buffer.emit("define " + returnTypeCode(ret_type) + funcNameCode(name, version) + formalsCode(arg_types));
+    buffer.emit("define " + returnTypeCode(ret_type)
+                + " " + funcNameCode(name, version)
+                + formalsCode(arg_types));
+    buffer.emitLeftBrace();
+    symbolTable.setCurrentRbp(buffer.allocFunctionRbp());
 }
 
 string FuncDecl::returnTypeCode(string ret_type)
