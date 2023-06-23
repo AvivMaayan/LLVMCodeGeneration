@@ -88,9 +88,21 @@ Statement: LBRACE
             {
                 symbolTable.popScope();
             }
+         | IF LPAREN isBool RPAREN Ps M                             
+            {
+                $$ = new Statement(dynamic_cast<Exp*>($3), dynamic_cast<MarkerM*>($6), dynamic_cast<MarkerN*>($9), dynamic_cast<MarkerM*>($11));
+            }
+            Statement ELSE N
+            {
+                symbolTable.popScope();
+            } 
+            Ps M Statement
+            {
+                symbolTable.popScope();
+            }
          | WHILE M LPAREN isBool RPAREN                             
             {
-                $$ = new Statement(dynamic_cast<MarkerM*>($2), dynamic_cast<Exp*>($3);)
+                $$ = new Statement(dynamic_cast<MarkerM*>($2), dynamic_cast<Exp*>($4), dynamic_cast<MarkerM*>())
             }
             {
                 symbolTable.pushScope(true);

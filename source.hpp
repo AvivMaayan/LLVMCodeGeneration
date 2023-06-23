@@ -283,7 +283,7 @@ public:
 
     void numCode(const string &reg, const string &value);
 
-    void assignCode(Exp *exp, int offset, bool isBool);
+    void assignCode(Exp *exp, int offset);
 
     void returnCode(string &returnType, string &reg);
 };

@@ -400,7 +400,7 @@ Statement::Statement(Type *type, Id *id, Exp *exp) : Node()
     /* if we got here this statement is ok. insert the new symbol*/
     int offset = symbolTable.insertSymbol(id->name, type->type);
     /******************* code generation: *****************************/
-    assignCode(exp, offset, type->type == "bool");
+    assignCode(exp, offset);
 }
 
 /* ID ASSIGN Exp SC*/
@@ -430,7 +430,7 @@ Statement::Statement(Id *id, Exp *exp) : Node()
     string type = symbolTable.getSymbolType(id->name);
     /* the case of an assignemnt to a parameter isn't supposed to be checked*/
     assert(offset >= 0);
-    assignCode(exp, offset, type == "bool");
+    assignCode(exp, offset);
 }
 
 /* Call SC*/
@@ -560,7 +560,7 @@ void Statement::mergeStatements(Statement *statement)
 {
 }
 
-void Statement::assignCode(Exp *exp, int offset, bool isBool)
+void Statement::assignCode(Exp *exp, int offset)
 {
     if (!exp->in_reg())
     {
