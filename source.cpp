@@ -92,10 +92,11 @@ Exp::Exp(bool is_not, const Exp *bool_exp)
         this->true_list = bool_exp->false_list;
         this->false_list = bool_exp->true_list;
     }
-
+    else {
     this->value = bool_exp->value;
     this->true_list = bool_exp->true_list;
     this->false_list = bool_exp->false_list;
+    }
 }
 
 Exp::Exp(const Exp *left_exp, const BinOp *op, const Exp *right_exp)
@@ -340,7 +341,7 @@ vector<string> FormalList::getNamesVector() const
     return arg_names;
 }
 
-/* Type ID SC*/
+/* Type ID SC --- int x; */
 Statement::Statement(Type *type, Id *id) : Node()
 {
     /* check if symbol already exists with this name*/
@@ -353,21 +354,7 @@ Statement::Statement(Type *type, Id *id) : Node()
     int offset = symbolTable.insertSymbol(id->name, type->type);
     this->type = type->type;
     /******************* code generation: *****************************/
-    Exp *exp = new Exp();
-    exp->reg = buffer.genReg();
-    exp->type = type->type;
-    if (this->type == "bool")
-    {
-        exp->value = "false";
-        buffer.boolCode(exp);
-    }
-    else
-    {
-        exp->value = "0";
-        buffer.numCode(exp->reg, "0");
-        buffer.assignCode(exp, offset, type->type);
-    }
-    delete exp;
+    /* no need to write anything here, the location was already allocated*/
 }
 
 /* Type ID ASSIGN Exp SC --- int x = 6*/
@@ -389,7 +376,7 @@ Statement::Statement(Type *type, Id *id, Exp *exp) : Node()
     /* if we got here this statement is ok. insert the new symbol*/
     int offset = symbolTable.insertSymbol(id->name, type->type);
     /******************* code generation: *****************************/
-    buffer.assignCode(exp, offset, type->type);
+    assignCode(exp, offset, type->type == "bool");
 }
 
 /* ID ASSIGN Exp SC*/
@@ -419,7 +406,7 @@ Statement::Statement(Id *id, Exp *exp) : Node()
     string type = symbolTable.getSymbolType(id->name);
     /* the case of an assignemnt to a parameter isn't supposed to be checked*/
     assert(offset >= 0);
-    buffer.assignCode(exp, offset, type);
+    assignCode(exp, offset, type == "bool");
 }
 
 /* Call SC*/
@@ -457,7 +444,23 @@ Statement::Statement(const string operation)
             /*exit anyways*/
             exit(1);
         }
+        /* 'break' or 'continue' both require a jump that will later be backpatched*/
+        int address = buffer.emit("br label @");
+        if(operation == "break") {
+            /* create break list for this break command*/
+            this->break_list = buffer.makelist(LabelLocation(address, FIRST)); 
+        }
+        else { /* the operation is continue*/
+            /* create continue list for this continue command*/
+            this->cont_list = buffer.makelist(LabelLocation(address, FIRST));
+        }
     }
+}
+
+/* RETURN Exp SC*/
+Statement::Statement(Exp *exp)
+{
+        
 }
 
 /* RETURN Exp SC --or-- IF LPAREN Exp RPAREN Statement

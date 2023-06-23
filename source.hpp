@@ -253,7 +253,7 @@ public:
     vector<LabelLocation> break_list = {};
     /* Type ID SC*/
     Statement(Type *type, Id *id);
-    /* Type ID ASSIGN Exp SC --- int x = 6*/
+    /* Type ID ASSIGN Exp SC*/
     Statement(Type *type, Id *id, Exp *exp);
     /* ID ASSIGN Exp SC*/
     Statement(Id *id, Exp *exp);
@@ -261,14 +261,28 @@ public:
     Statement(Call *call);
     /* RETURN SC --or-- BREAK SC --or-- CONTINUE SC*/
     Statement(const string operation);
-    /* RETURN Exp SC --or-- IF LPAREN Exp RPAREN Statement
-     * --or-- IF LPAREN Exp RPAREN Statement ELSE Statement
-     * --or-- WHILE LPAREN Exp RPAREN Statement*/
-    Statement(bool checkIfExpIsBoolean, Exp *exp);
+    /* RETURN Exp SC*/
+    Statement(Exp *exp);
+    /* IF LPAREN Exp RPAREN M Statement*/
+    Statement(Exp *exp, MarkerM* m);
+    /* IF LPAREN Exp RPAREN M Statement ELSE N M Statement*/
+    Statement(Exp *exp, MarkerM* m1, MarkerN* n, MarkerM* m2);
+    /* WHILE M LPAREN Exp RPAREN M Statement*/
+    Statement(MarkerM* m1, Exp *exp, MarkerM* m2);
+
+    virtual ~Statement() = default;
+
+    /* methods for creating the code */
 
     void mergeStatements(Statement *statement);
 
-    virtual ~Statement() = default;
+    void boolCode(Exp *exp);
+
+    void numCode(const string &reg, const string &value);
+
+    void assignCode(Exp* exp, int offset, bool isBool);
+
+    void returnCode(string &returnType, string& reg);
 };
 
 class FuncDecl : public Node

@@ -79,13 +79,19 @@ Statement: LBRACE
                                                                                         dynamic_cast<Exp*>($3));}
          | Call SC                                                  {$$ = new Statement(dynamic_cast<Call*>($1));}
          | RETURN SC                                                {$$ = new Statement("return");}
-         | RETURN Exp SC                                            {$$ = new Statement(false, dynamic_cast<Exp*>($2));}
-         | IF LPAREN isBool RPAREN Ps M
+         | RETURN Exp SC                                            {$$ = new Statement(dynamic_cast<Exp*>($2));}
+         | IF LPAREN isBool RPAREN Ps M                             
+            {
+                $$ = new Statement(dynamic_cast<Exp*>($3), dynamic_cast<MarkerM*>($6));
+            }
             Statement
             {
                 symbolTable.popScope();
             }
-         | IF LPAREN isBool RPAREN Ps M
+         | IF LPAREN isBool RPAREN Ps M                             
+            {
+                $$ = new Statement(dynamic_cast<Exp*>($3), dynamic_cast<MarkerM*>($6), dynamic_cast<MarkerN*>($9), dynamic_cast<MarkerM*>($11));
+            }
             Statement ELSE N
             {
                 symbolTable.popScope();
@@ -94,7 +100,10 @@ Statement: LBRACE
             {
                 symbolTable.popScope();
             }
-         | WHILE M LPAREN isBool RPAREN
+         | WHILE M LPAREN isBool RPAREN                             
+            {
+                $$ = new Statement(dynamic_cast<MarkerM*>($2), dynamic_cast<Exp*>($4), dynamic_cast<MarkerM*>())
+            }
             {
                 symbolTable.pushScope(true);
             } 
