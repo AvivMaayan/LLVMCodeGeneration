@@ -267,22 +267,16 @@ public:
     /* RETURN Exp SC*/
     Statement(Exp *exp);
     /* IF LPAREN Exp RPAREN M Statement*/
-    Statement(Exp *exp, MarkerM *m);
+    Statement(Exp *exp, MarkerM *m, Statement *statement);
     /* IF LPAREN Exp RPAREN M Statement ELSE N M Statement*/
-    Statement(Exp *exp, MarkerM *m1, MarkerN *n, MarkerM *m2);
-    /* WHILE M LPAREN Exp RPAREN M Statement*/
-    Statement(MarkerM *m1, Exp *exp, MarkerM *m2);
+    Statement(Exp *exp, MarkerM *trueCondition, Statement* ifStatement, MarkerM *falseCondition, Statement* elseStatement);            
+    /* WHILE LPAREN M Exp RPAREN M Statement*/            
+    Statement(MarkerM *loopCondition, Exp *exp, MarkerM *loopStmts, Statement *statement);
 
     virtual ~Statement() = default;
 
     /* methods for creating the code */
-
-    void mergeStatements(Statement *statement);
-
-    void boolCode(Exp *exp);
-
-    void numCode(const string &reg, const string &value);
-
+    
     void assignCode(Exp *exp, int offset);
 
     void returnCode(Exp *exp);

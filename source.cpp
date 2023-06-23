@@ -496,50 +496,81 @@ Statement::Statement(Exp *exp)
     returnCode(exp);
 }
 
-// /* RETURN Exp SC --or-- IF LPAREN Exp RPAREN Statement
-//  * --or-- IF LPAREN Exp RPAREN Statement ELSE Statement
-//  * --or-- WHILE LPAREN Exp RPAREN Statement*/
-// Statement::Statement(bool checkIfExpIsBoolean, Exp *exp)
-// {
-//     // /* check if this is the [RETURN Exp SC] case*/
-//     // if (checkIfExpIsBoolean == false)
-//     // {
-//     //     /* check for the return type (has to be the same as exp)*/
-//     //     if (!symbolTable.checkTypes(symbolTable.getClosestReturnType(), exp->type))
-//     //     {
-//     //         output::errorMismatch(yylineno);
-//     //         exit(1);
-//     //     }
-//     //     /******************* code generation: *****************************/
-//     //     string returnType = symbolTable.getClosestReturnType();
-//     //     string rbp = symbolTable.getCurrentRbp();
-//     //     if (exp->type == "bool")
-//     //     {
-//     //         /* perform some tasks*/
-//     //         /* need to check here if the exp is a variable?*/
-//     //     }
-//     //     else
-//     //     {
-//     //         /* print the return command*/
-//     //         buffer.emit("ret " + returnType + " " + exp->reg);
-//     //     }
-//     // }
-//     /* maybe need to remove this part and the if/while change places*/
-//     else if (exp->type != "bool")
-//     {
-//         output::errorMismatch(yylineno);
-//         exit(1);
-//     }
-// }
-
-/**
- * Merge the lists of the given statement with this one.
- * @param statement - the stmt to merge its list to ours
- */
-void Statement::mergeStatements(Statement *statement)
+/* IF LPAREN Exp RPAREN M Statement*/
+Statement::Statement(Exp *exp, MarkerM *m, Statement *statement)
 {
+    /* exp is a boolean, no need to check*/
+    /* merge the break and continue lists with the ones of the statement*/
+    this->break_list = buffer.merge(break_list, statement->break_list);
+    this->cont_list = buffer.merge(cont_list, statement->cont_list);
+
+    /**
+     * backpatch the true_list of the expression (the condition) with the stmts
+     * within the "if" scope
+     * */
+    buffer.bpatch(exp->true_list, m->quad);
+
+    /* generate the label that states the "if" condition is false, and emit it*/
+    string falseLabel = buffer.genLabel();
+    /* backpatch the false and next list of the expression (the condition)*/
+    buffer.bpatch(exp->false_list, falseLabel);
+    buffer.bpatch(exp->next_list, falseLabel);
 }
 
+/* IF LPAREN Exp RPAREN M Statement ELSE N M Statement*/
+Statement::Statement(Exp *exp, MarkerM *trueCondition, Statement *ifStatement, MarkerM *falseCondition, Statement *elseStatement)
+{
+    /* exp is a boolean, no need to check*/
+    /**
+     * merge the continue and break lists of both statements, since when this if-else is within a loop,
+     * both continue and break need to jump to the same location.
+    */
+    cont_list =  buffer.merge(ifStatement->cont_list, elseStatement->cont_list);
+    break_list = buffer.merge(ifStatement->break_list, elseStatement->break_list);
+    /* backpatch the true list of the condition to jump to the inner part of the if block*/
+    buffer.bpatch(exp->true_list, trueCondition->quad);
+    /* backpatch the false list of the condition to jump to the inner part of the else block*/
+    buffer.bpatch(exp->false_list, falseCondition->quad);
+    /* the next operation to perform is a new label, outside of both if and else blocks*/
+    string outLabel = buffer.genLabel();
+    buffer.bpatch(exp->next_list, outLabel);
+}
+
+/* WHILE LPAREN M Exp RPAREN M Statement*/
+Statement::Statement(MarkerM *loopCondition, Exp *exp, MarkerM *loopStmts, Statement *statement)
+{
+    /* exp is a boolean, no need to check*/
+    /* emit the correct label for the condition of the loop*/
+    string loopLabel = loopCondition->quad;
+    if (loopLabel[0] != '%' && loopLabel[0] != '@')
+    {
+        buffer.emit("br label %" + loopLabel);
+    }
+    else
+    {
+        buffer.emit("br label " + loopLabel);
+    }
+    /* emit another label for getting out of the loop*/
+    string outLabel = buffer.genLabel();
+    /* if the condition is true, bp to jump to the statements*/
+    buffer.bpatch(exp->true_list, loopStmts->quad);
+    /* otherwise, jump out of the loop*/
+    buffer.bpatch(exp->false_list, outLabel);
+    buffer.bpatch(exp->next_list, outLabel);
+    /* the breaks within the loop should go out of the loop*/
+    buffer.bpatch(statement->break_list, outLabel);
+    /* the continues within the loop should go back to the condition*/
+    buffer.bpatch(statement->cont_list, loopCondition->quad);
+}
+
+/* methods for creating the code */
+
+/**
+ * creates and emits the code for storing a variable within a reg into an address on the stack. 
+ * @note: if the exp given is NOT an id variable, Aviv wrote evaluation function to insert its value in a reg
+ * @param exp the expression to insert to the stack
+ * @param offset the offset after the rbp that this variable needs to be inserted to
+ */
 void Statement::assignCode(Exp *exp, int offset)
 {
     if (!exp->in_reg())
@@ -550,6 +581,11 @@ void Statement::assignCode(Exp *exp, int offset)
     buffer.storeVariable(symbolTable.getCurrentRbp(), offset, exp->reg);
 }
 
+/**
+ * creates and emits a code for a return command in LLVM 
+ * 
+ * @param exp the expression to return in the LLVM code
+ */
 void Statement::returnCode(Exp *exp)
 {
     /* convert return type to LLVM syntax*/
@@ -676,7 +712,7 @@ string FuncDecl::formalsCode(vector<string> formals_types)
         formals_str += ", ";
     }
 
-    return formals_str.substr(0, formals_str.size()-2) + ")";
+    return formals_str.substr(0, formals_str.size() - 2) + ")";
 }
 
 MarkerM::MarkerM()
@@ -696,10 +732,16 @@ MarkerN::MarkerN()
     this->next_list = buffer.makelist(LabelLocation(address, FIRST));
 }
 
-void isBool(Exp* exp) {
+void isBool(Exp *exp)
+{
     if (exp->type != "bool")
     {
         output::errorMismatch(yylineno);
         exit(1);
     }
+}
+
+void mergeNextList(Exp *exp, MarkerN *n)
+{
+    exp->next_list = buffer.merge(n->next_list, exp->next_list);
 }

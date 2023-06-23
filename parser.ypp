@@ -80,23 +80,28 @@ Statement: LBRACE
          | Call SC                                                  {$$ = new Statement(dynamic_cast<Call*>($1));}
          | RETURN SC                                                {$$ = new Statement("return");}
          | RETURN Exp SC                                            {$$ = new Statement(dynamic_cast<Exp*>($2));}
-         | IF LPAREN isBool RPAREN Ps M                             
+         | IF LPAREN isBool RPAREN Ps M Statement
             {
-                $$ = new Statement(dynamic_cast<Exp*>($3), dynamic_cast<MarkerM*>($6));
-            }
-            Statement
-            {
+                $$ = new Statement(dynamic_cast<Exp*>($3), dynamic_cast<MarkerM*>($6), dynamic_cast<Statement*>($7));
                 symbolTable.popScope();
             }
-         | WHILE M LPAREN isBool RPAREN                             
+         | IF LPAREN isBool RPAREN Ps M Statement ELSE N
             {
-                $$ = new Statement(dynamic_cast<MarkerM*>($2), dynamic_cast<Exp*>($3);)
+               mergeNextList(dynamic_cast<Exp*>($3), dynamic_cast<MarkerN*>($9));
+               symbolTable.popScope();
             }
+            Ps M Statement
+            {
+               $$ = new Statement(dynamic_cast<Exp*>($3), dynamic_cast<MarkerM*>($6), dynamic_cast<Statement*>($7), dynamic_cast<MarkerM*>($11), dynamic_cast<Statement*>($12));
+               symbolTable.popScope();
+            }
+         | WHILE LPAREN M isBool RPAREN                             
             {
                 symbolTable.pushScope(true);
             } 
             M Statement
             { 
+                $$ = new Statement(dynamic_cast<MarkerM*>($3), dynamic_cast<Exp*>($4), dynamic_cast<MarkerM*>($6), dynamic_cast<Statement*>($7));
                 symbolTable.popScope();
             }
          | BREAK SC                                                 {$$ = new Statement("break");}
@@ -146,7 +151,7 @@ Exp: LPAREN Exp RPAREN                                              {$$ = new Ex
                                                                                   dynamic_cast<Exp*>($4));}
 
 Ps: %empty                                                          {symbolTable.pushScope(false);}
-isBool: Exp                                                         {$$ = new Statement(true, dynamic_cast<Exp*>($1));}
+isBool: Exp                                                         {isBool(dynamic_cast<Exp*>($1));}
 M: %empty                                                           {$$ = new MarkerM();}
 N: %empty                                                           {$$ = new MarkerN();}
 
