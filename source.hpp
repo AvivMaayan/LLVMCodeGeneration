@@ -299,6 +299,10 @@ public:
              const Id *id_node,
              const FormalList *formals_node);
 
+    string returnTypeCode(string ret_type);
+    string funcNameCode(string name, int version);
+    string formalsCode(vector<string> formals_types);
+
     virtual ~FuncDecl() = default;
 };
 

@@ -632,7 +632,7 @@ FuncDecl::FuncDecl(const Override *override_node,
         }
     }
 
-    symbolTable.insertFuncSymbol(name, ret_type, override, arg_types);
+    version = symbolTable.insertFuncSymbol(name, ret_type, override, arg_types);
 
     this->name = name;
     this->type = ret_type;
@@ -648,6 +648,35 @@ FuncDecl::FuncDecl(const Override *override_node,
         output::errorDef(yylineno, errorName);
         exit(1);
     }
+
+    buffer.emit("define " + returnTypeCode(ret_type) + funcNameCode(name, version) + formalsCode(arg_types));
+}
+
+string FuncDecl::returnTypeCode(string ret_type)
+{
+    if (ret_type == "void")
+        return "void";
+    if (ret_type == "string")
+        return "i8*";
+    return "i32";
+}
+
+string FuncDecl::funcNameCode(string name, int version)
+{
+    return "@" + name + "_" + std::to_string(version);
+}
+
+string FuncDecl::formalsCode(vector<string> formals_types)
+{
+    string formals_str = "(";
+
+    for (string formal_type : formals_types)
+    {
+        formals_str += (formal_type == "string") ? "i8*" : "i32";
+        formals_str += ", ";
+    }
+
+    return formals_str.substr(0, formals_str.size()-2) + ")";
 }
 
 MarkerM::MarkerM()
