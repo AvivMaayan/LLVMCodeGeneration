@@ -34,6 +34,10 @@ public:
 
     int emit(const std::string &command);
 
+    void emitLeftBrace() { emit("{"); };
+    void emitRightBrace() { emit("}"); };
+    void returnFunc(string ret_type);
+
     static vector<LabelLocation> makelist(LabelLocation item);
 
     static vector<LabelLocation> merge(const vector<LabelLocation> &l1, const vector<LabelLocation> &l2);

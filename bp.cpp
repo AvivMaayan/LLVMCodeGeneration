@@ -84,6 +84,13 @@ void CodeBuffer::printCodeBuffer()
  * gets a pair<int,BranchLabelIndex> item of the form
  * {buffer_location, branch_label_index} and creates a list for it
  */
+void CodeBuffer::returnFunc(string ret_type)
+{
+    if (buffer.back().find("return") == std::string::npos)
+        emit("return"); /** @todo: default value for type*/
+    emitRightBrace();
+}
+
 vector<LabelLocation> CodeBuffer::makelist(LabelLocation item)
 {
     vector<LabelLocation> newList;

@@ -144,7 +144,7 @@ private:
 
     bool isBooleanExp(const Exp *exp) { return (exp->type == "bool"); }
 
-    string getArgReg(int offset) { return "%" + std::to_string((1 - offset)); }
+    string getArgReg(int offset) { return "%" + std::to_string((- 1 - offset)); }
 
     string loadGetVar(int offset);
 

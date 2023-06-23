@@ -43,6 +43,7 @@ FuncDecl: OverRide RetType ID LPAREN Formals
           }
           RPAREN LBRACE Statements RBRACE
           {
+            buffer.returnFunc(symbolTable.getClosestReturnType());
             symbolTable.popScope();
           }
 
@@ -80,25 +81,7 @@ Statement: LBRACE
          | Call SC                                                  {$$ = new Statement(dynamic_cast<Call*>($1));}
          | RETURN SC                                                {$$ = new Statement("return");}
          | RETURN Exp SC                                            {$$ = new Statement(dynamic_cast<Exp*>($2));}
-         | IF LPAREN isBool RPAREN Ps M                             
-            {
-                $$ = new Statement(dynamic_cast<Exp*>($3), dynamic_cast<MarkerM*>($6));
-            }
-            Statement
-            {
-                symbolTable.popScope();
-            }
-         | WHILE M LPAREN isBool RPAREN                             
-            {
-                $$ = new Statement(dynamic_cast<MarkerM*>($2), dynamic_cast<Exp*>($3);)
-            }
-            {
-                symbolTable.pushScope(true);
-            } 
-            M Statement
-            { 
-                symbolTable.popScope();
-            }
+
          | BREAK SC                                                 {$$ = new Statement("break");}
          | CONTINUE SC                                              {$$ = new Statement("continue");}
 
