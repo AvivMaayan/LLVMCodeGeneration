@@ -178,8 +178,10 @@ public:
      * @param returnType the return type of the function
      * @param isOverride bool indicating if this function is declared with "override"
      * @param parametersTypes vector of the parameters' TYPES that this function receives
+     * 
+     * @return int - the version number of the function inserted
      */
-    void insertFuncSymbol(const string name, string returnType, bool isOverride, const vector<string> &parametersTypes);
+    int insertFuncSymbol(const string name, string returnType, bool isOverride, const vector<string> &parametersTypes);
 
     /**
      * Return a boolean stating if exists a symbol within any of the Scopes

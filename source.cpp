@@ -666,3 +666,11 @@ MarkerN::MarkerN()
     int address = buffer.emit("br label @");
     this->next_list = buffer.makelist(LabelLocation(address, FIRST));
 }
+
+void isBool(Exp* exp) {
+    if (exp->type != "bool")
+    {
+        output::errorMismatch(yylineno);
+        exit(1);
+    }
+}

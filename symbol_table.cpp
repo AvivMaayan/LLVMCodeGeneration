@@ -198,18 +198,21 @@ int SymbolTable::insertSymbol(const string name, string type)
     return offset;
 }
 
-void SymbolTable::insertFuncSymbol(const string name, string returnType, bool isOverride,
+int SymbolTable::insertFuncSymbol(const string name, string returnType, bool isOverride,
                                    const vector<string> &parametersTypes)
 {
     assert(m_offsets.size() > 0 && m_scopes.size() > 0);
     /* Get current offset*/
     int offset = m_offsets.top();
     /* Create the new function symbol*/
-    PSymbol pFuncSymbol = new Symbol(name, "func", 0, isOverride, m_distributer, returnType, parametersTypes);
+    int version = m_distributer;
+    PSymbol pFuncSymbol = new Symbol(name, "func", 0, isOverride, version, returnType, parametersTypes);
     /* Update the distributer*/
     m_distributer++;
     /* Add it to the current scope*/
     m_scopes.back()->insertSymbol(pFuncSymbol);
+    /* return the version of the function inserted*/
+    return version;
 }
 
 bool SymbolTable::isSymbolExist(const string name)
