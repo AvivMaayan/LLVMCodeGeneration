@@ -360,7 +360,7 @@ string SymbolTable::getClosestReturnType()
 
 string SymbolTable::getCurrentRbp()
 {
-    PScope currentScope = *(m_scopes.rend());
+    PScope currentScope = m_scopes.back();
     /* the m_scopes is not suppose to be empty. if so, it's a bug*/
     assert(currentScope != nullptr);
     return currentScope->m_rbp;
