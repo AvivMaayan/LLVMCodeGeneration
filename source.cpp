@@ -242,6 +242,30 @@ string Exp::loadGetVar(int offset)
 
 Exp::Exp(const Call *call) : Node(call->return_type) {}
 
+void Exp::evaluateBoolToReg()
+{
+    assert(this->type == "bool");
+    assert(!this->in_reg());
+
+    string true_label = buffer.genLabel();
+    LabelLocation true_jump_to_phi_loc = buffer.emitJump();
+    buffer.bpatch(this->true_list, true_label);
+
+    string false_label = buffer.genLabel();
+    LabelLocation false_jump_to_phi_loc = buffer.emitJump();
+    buffer.bpatch(this->false_list, false_label);
+
+    string phi_label = buffer.genLabel();
+    vector<LabelLocation> phi_jump_locations = buffer.merge(
+        buffer.makelist(true_jump_to_phi_loc),
+        buffer.makelist(false_jump_to_phi_loc)
+    );
+    buffer.bpatch(phi_jump_locations, phi_label);
+
+    this->reg = buffer.genReg();
+    buffer.emit(this->reg + " = phi i32 [1, %" + true_label + "], [0, %" + false_label + "]");
+}
+
 ExpList::ExpList(const Exp *expression)
 {
     this->exp_list.push_back(expression->type);

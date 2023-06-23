@@ -44,6 +44,8 @@ public:
 
     void labelEmit(string &labelName);
 
+    LabelLocation emitJump();
+
     // int nextquad();
 
     void boolCode(Exp *exp);
