@@ -395,7 +395,9 @@ Statement::Statement(Type *type, Id *id) : Node(), break_list(), cont_list()
     int offset = symbolTable.insertSymbol(id->name, type->type);
     this->type = type->type;
     /******************* code generation: *****************************/
-    /* no need to write anything here, the location was already allocated*/
+    /* store default value within this variable on the stack*/
+    // buffer.storeVariable(symbolTable.getCurrentRbp(), offset, buffer.getDefaultValue(this->type));
+
 }
 
 /* Type ID ASSIGN Exp SC --- int x = 6*/
