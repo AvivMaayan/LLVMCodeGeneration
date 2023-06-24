@@ -1,40 +1,47 @@
----end scope---
----end scope---
----end scope---
----end scope---
-x INT 0
----end scope---
-print (STRING)->VOID 0
-printi (INT)->VOID 0
-main ()->VOID 0
-nit ()->INT 0
-
-
-**** Buffer Testing ****
-
-define void @main_2()
-{
-%var_0 = alloca i32, i32 50
+@.DIV_BY_ZERO_ERROR = internal constant [23 x i8] c"Error division by zero\00"
+define void @check_division(i32) {
+%valid = icmp eq i32 %0, 0
+br i1 %valid, label %ILLEGAL, label %LEGAL
+ILLEGAL:
+call void @print(i8* getelementptr([23 x i8], [23 x i8]* @.DIV_BY_ZERO_ERROR, i32 0, i32 0))
+call void @exit(i32 0)
 ret void
-return
+LEGAL:
+ret void
 }
-define i32 @nit_3()
-{
-%var_1 = alloca i32, i32 50
-%var_2 = getelementptr i32, i32* %var_1, i32 0
-store i32 5, i32* %var_2
-label_11:
-%var_4 = getelementptr i32, i32* %var_1, i32 0
-%var_3 = load i32, i32* %var_4
-%var_5 = icmp sgt i32 %var_3, 0
-br i1 %var_5, label %label_16, label %label_23
-label_16:
-%var_7 = getelementptr i32, i32* %var_1, i32 0
-%var_6 = load i32, i32* %var_7
-%var_8 = sub i32 %var_6, 1
-%var_9 = getelementptr i32, i32* %var_1, i32 0
-store i32 %var_8, i32* %var_9
-br label %label_11
-label_23:
-return
+@.intFormat = internal constant [4 x i8] c"%d\0A\00"
+@.DIVIDE_BY_ZERO.str = internal constant [23 x i8] c"Error division by zero\00"
+declare i32 @printf(i8*, ...)
+declare void @exit(i32)
+@.int_specifier = constant [4 x i8] c"%d\0A\00"
+@.str_specifier = constant [4 x i8] c"%s\0A\00"
+define void @print(i8*){
+call i32 (i8*, ...) @printf(i8* getelementptr([4 x i8], [4 x i8]* @.str_specifier, i32 0, i32 0), i8* %0)
+ret void
+}
+define void @printi(i32){
+%format_ptr = getelementptr [4 x i8], [4 x i8]* @.intFormat, i32 0, i32 0
+call i32 (i8*, ...) @printf(i8* getelementptr([4 x i8], [4 x i8]* @.intFormat, i32 0, i32 0), i32 %0)
+ret void
+}
+define i32 @nit(){
+%var_0 = alloca i32, i32 50
+br label %label_0
+br label %label_0
+label_0:
+br label %PHI_TRUE_LABEL1
+br label %PHI_TRUE_LABEL1
+PHI_TRUE_LABEL1:
+br label %PHI_NEXT_LABEL3
+PHI_FALSE_LABEL2:
+br label %PHI_NEXT_LABEL3
+PHI_NEXT_LABEL3:
+%var_1 = phi i32 [ 1, %PHI_TRUE_LABEL1], [0, %PHI_FALSE_LABEL2]
+ret i32 %var_1
+ret i32 0
+}
+define void @main(){
+%var_2 = alloca i32, i32 50
+ret void
+ret void
 }
