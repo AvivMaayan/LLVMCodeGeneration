@@ -7,6 +7,52 @@ using namespace std;
 bool replace(string &str, const string &from, const string &to, const BranchLabelIndex index);
 
 CodeBuffer::CodeBuffer() : buffer(), globalDefs(), regCounter(0) {}
+
+void CodeBuffer::emitGlobals()
+{
+    this->emitDivisionFunction();
+    this->emitPtintingFunctions();
+    this->emitDeclareFunctions();
+}
+
+void CodeBuffer::emitDeclareFunctions()
+{
+    emit("declare i32 @printf(i8*, ...)");
+    emit("declare void @exit(i32)");
+
+    emit("@.int_specifier = constant [4 x i8] c\"%d\\0A\\00\"");
+    emit("@.str_specifier = constant [4 x i8] c\"%s\\0A\\00\"");
+}
+
+void CodeBuffer::emitDivisionFunction()
+{
+    emit("@.DIV_BY_ZERO_ERROR = internal constant [23 x i8] c\"Error division by zero\\00\"");
+    emit("define void @check_division(i32) {");
+    emit("%valid = icmp eq i32 %0, 0");
+    emit("br i1 %valid, label %div_0, label %legal_div");
+    emit("div_0:");
+    emit("call void @print(i8* getelementptr([23 x i8], [23 x i8]* @.DIV_BY_ZERO_ERROR, i32 0, i32 0))");
+    emit("call void @exit(i32 0)");
+    emit("ret void");
+    emit("legal_div:");
+    emit("ret void");
+    emit("}");
+}
+
+void CodeBuffer::emitPtintingFunctions()
+{
+    emit("define void @print(i8*){");
+    emit("call i32 (i8*, ...) @printf(i8* getelementptr([4 x i8], [4 x i8]* @.str_specifier, i32 0, i32 0), i8* %0)");
+    emit("ret void");
+    emit("}");
+
+    emit("define void @printi(i32){");
+    emit("%spec_ptr = getelementptr [4 x i8], [4 x i8]* @.int_specifier, i32 0, i32 0");
+    emit("call i32 (i8*, ...) @printf(i8* %spec_ptr, i32 %0)");
+    emit("ret void");
+    emit("}");
+}
+
 /**
  * With the Singleton design pattern, the single instance of CodeBuffer could be accessed using:
  * CodeBuffer &buffer = CodeBuffer::instance();
@@ -92,6 +138,10 @@ string CodeBuffer::typeCode(string c_type)
         return "void";
     if (c_type == "string")
         return "i8*";
+    if (c_type == "bool")
+        return "i1";
+    if (c_type == "byte")
+        return "i8";
     return "i32";
 }
 
@@ -137,7 +187,7 @@ void CodeBuffer::labelEmit(string &labelName)
 {
     /** We might need to close the prev block here using the first emit.
      * @todo: Figure out
-    */
+     */
     // emit("br label %" + labelName);
     emit(labelName + ":");
 }

@@ -22,9 +22,16 @@ class CodeBuffer
 
     /**************** Emit specific code methods *******************/
     
+    void emitPtintingFunctions();
+
+    void emitDivisionFunction();
+
+    void emitDeclareFunctions();
 
 public:
     static CodeBuffer &instance();
+
+    void emitGlobals();
 
     // ******** Methods to handle the code section ******** //
 

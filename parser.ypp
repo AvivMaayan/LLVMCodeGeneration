@@ -124,7 +124,7 @@ Call: ID LPAREN ExpList RPAREN                                      {$$ = new Ca
     | ID LPAREN RPAREN                                              {$$ = new Call(dynamic_cast<Id*>($1)->name);}
 
 ExpList: Exp                                                        {$$ = new ExpList(dynamic_cast<Exp*>($1));}
-       | Exp COMMA M ExpList                                          {$$ = new ExpList(dynamic_cast<Exp*>($1),
+       | Exp COMMA ExpList                                          {$$ = new ExpList(dynamic_cast<Exp*>($1),
                                                                                       dynamic_cast<ExpList*>($3));}
 
 Type: INT                                                           {$$ = ($1);}

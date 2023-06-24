@@ -64,7 +64,7 @@ Exp::Exp(const string type, const string value)
 
     /** When we have const 'true' or 'false' we can use reg to store them.
      * This way 'evaluateBoolToReg()' won't be called in assignment or returning.
-    */
+     */
     if (type == "bool")
     {
         // this->reg = value;
@@ -73,6 +73,20 @@ Exp::Exp(const string type, const string value)
             this->true_list = buffer.makelist(LabelLocation(address, FIRST));
         else
             this->false_list = buffer.makelist(LabelLocation(address, FIRST));
+    }
+
+    /* if this is a string value, add this to the global buffer*/
+    if (type == "string")
+    {
+        string str = value;
+        str.pop_back();
+        string reg = buffer.genReg();
+        string stringLength = "[" + to_string(str.length()) + " x i8]";
+        string stringPointer = "getelementptr" + stringLength + ", " + stringLength + "* " + reg + ", i32 0, i32 0";
+        buffer.emitGlobal(reg + " = constant " + stringLength + " c" + str + "\\00\"");
+        reg.replace(0, 1, "%");
+        buffer.emit(reg + ".ptr = " + stringPointer);
+        this->reg = reg + ".ptr";
     }
 }
 
@@ -267,7 +281,7 @@ Exp::Exp(const Id *id)
          * command and lists for backpatching it.
          * To do so we'll compare current value with 'false' and store the result
          * in a new register.
-        */
+         */
         string new_reg = buffer.genReg();
         string compare_code = new_reg + " = icmp ne i32 0, " + this->reg;
         this->reg = new_reg;
@@ -284,7 +298,8 @@ string Exp::loadGetVar(int offset)
     return buffer.loadVaribale(rbp, offset);
 }
 
-Exp::Exp(const Call *call) : Node(call->return_type) {
+Exp::Exp(const Call *call) : Node(call->return_type)
+{
     this->reg = call->reg;
 }
 
@@ -318,8 +333,9 @@ ExpList::ExpList(Exp *expression)
 
 ExpList::ExpList(Exp *additional_exp, ExpList *current_list)
 {
-    if(current_list != nullptr) {
-        this->exp_list = vector<Exp*>(current_list->exp_list);
+    if (current_list != nullptr)
+    {
+        this->exp_list = vector<Exp *>(current_list->exp_list);
     }
     this->exp_list.insert(this->exp_list.begin(), additional_exp);
 }
@@ -429,7 +445,7 @@ string Call::getLlvmArgs()
         /* if i is not the last one, add a comma*/
         if (i != exp_list.exp_list.size() - 1)
         {
-            result += ",";
+            result += ", ";
         }
     }
     return result;
@@ -778,15 +794,20 @@ void Statement::assignCode(Exp *exp, int offset)
 void Statement::returnCode(Exp *exp)
 {
     /* convert return type to LLVM syntax*/
-    string returnType = (symbolTable.getClosestReturnType() == "string")
-                        ? "i8*"
-                        : "i32";
+    string returnType = buffer.typeCode(symbolTable.getClosestReturnType());
 
     /* make sure exp->reg has the correct result*/
     if (!exp->in_reg())
     {
         assert(exp->type == "bool");
         exp->evaluateBoolToReg();
+    }
+    /* if the type is not i32, trunc the result to be in the correct size*/
+    if (returnType != "i32")
+    {
+        string new_reg = buffer.genReg();
+        buffer.emit(new_reg + " = trunc i32 " + exp->reg + " to " + returnType);
+        exp->reg = new_reg;
     }
     /* emit the return command*/
     buffer.emit("ret " + returnType + " " + exp->reg);
