@@ -80,7 +80,8 @@ Exp::Exp(const string type, const string value)
     {
         string str = value;
         str.pop_back();
-        string reg = buffer.genReg();
+        bool is_global = true;
+        string reg = buffer.genReg(is_global);
         string stringLength = "[" + to_string(str.length()) + " x i8]";
         string stringPointer = "getelementptr" + stringLength + ", " + stringLength + "* " + reg + ", i32 0, i32 0";
         buffer.emitGlobal(reg + " = constant " + stringLength + " c" + str + "\\00\"");
@@ -156,10 +157,12 @@ Exp::Exp(const Exp *left_exp, const BinOp *op, const Exp *right_exp)
         op_code = "mul";
         break;
     case BinOp::OpTypes::OP_DIVISION:
-        if (this->type == "int") 
+        if (this->type == "int")
         {
             op_code = "sdiv";
-        } else {
+        }
+        else
+        {
             op_code = "udiv";
         }
 
@@ -447,6 +450,11 @@ string Call::getLlvmArgs()
             result += "i32 ";
         }
         /* add this expression's reg*/
+        if (!tmp->in_reg())
+        {
+            assert(tmp->type == "bool");
+            tmp->evaluateBoolToReg();
+        }
         result += tmp->reg;
         /* if i is not the last one, add a comma*/
         if (i != exp_list.exp_list.size() - 1)

@@ -32,6 +32,13 @@ string CodeBuffer::genLabel()
     label << "label_";
     label << buffer.size();
     std::string ret(label.str());
+
+    if (buffer.back().rfind("ret", 0) == std::string::npos
+       && buffer.back().rfind("br", 0) == std::string::npos)
+    {
+        emit("br label %" + ret);
+    }
+
     label << ":";
     emit(label.str());
     return ret;
