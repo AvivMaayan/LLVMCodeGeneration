@@ -163,6 +163,7 @@ void SymbolTable::pushScope(bool isLoop, string returnType)
 
 void SymbolTable::popScope()
 {
+    bool should_print = false;
     /* assert that the sizes of the two DS fit. Bug otherwise*/
     assert(m_scopes.size() == m_offsets.size());
     /* assert that there is indeed something to pop*/
@@ -171,11 +172,14 @@ void SymbolTable::popScope()
     PScope pScope = m_scopes.back();
     /* Pop the scope from the vector*/
     m_scopes.pop_back();
-    /* Print end scope*/
-    output::endScope();
-    /* Print all of the symbols in the scope*/
-    pScope->printScope();
-    /* Pop offsets stack*/
+    if (should_print)
+    {
+        /* Print end scope*/
+        output::endScope();
+        /* Print all of the symbols in the scope*/
+        pScope->printScope();
+        /* Pop offsets stack*/
+    }
     m_offsets.pop();
     /* Release memory*/
     delete pScope;

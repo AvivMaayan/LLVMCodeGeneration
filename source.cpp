@@ -142,8 +142,14 @@ Exp::Exp(const Exp *left_exp, const BinOp *op, const Exp *right_exp)
         op_code = "mul";
         break;
     case BinOp::OpTypes::OP_DIVISION:
-        /** @todo: address udiv or sdiv */
-        op_code = "div";
+        if (this->type == "int") 
+        {
+            op_code = "sdiv";
+        } else {
+            op_code = "udiv";
+        }
+
+        buffer.emit("call void @check_division(i32 " + right_exp->reg + ")");
         break;
     }
 

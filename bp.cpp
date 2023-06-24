@@ -1,6 +1,7 @@
 #include "bp.hpp"
 #include <vector>
 #include <iostream>
+#include <fstream>
 #include <sstream>
 using namespace std;
 
@@ -45,6 +46,18 @@ int CodeBuffer::emit(const string &s)
     buffer.push_back(s);
     return buffer.size() - 1;
 }
+
+void CodeBuffer::emitFile(const string &path)
+{
+    std::ifstream file_stream(path);
+    string line;
+
+    while(std::getline(file_stream, line))
+    {
+        emit(line);
+    }
+}
+
 /**
 accepts a list of {buffer_location, branch_label_index} items and a label.
 For each {buffer_location, branch_label_index} item in address_list, backpatches the branch command
@@ -177,22 +190,6 @@ bool replace(string &str, const string &from, const string &to, const BranchLabe
         return false;
     str.replace(pos, from.length(), to);
     return true;
-}
-/**
- * To test our code generation
- */
-void CodeBuffer::testBuffer()
-{
-    cout << "\n\n**** Buffer Testing ****\n\n";
-    // for(int i=0; i<5; ++i)
-    // {
-    //     string fresh_reg = genReg();
-    //     emit(fresh_reg);
-    // }
-    // string reg = genReg();
-    // storeVariable("", 0, reg);
-    // string reg2 = loadVaribale("", 0);
-    printCodeBuffer();
 }
 
 /** Methods for creating and getting addresses of varibales in the stack*/

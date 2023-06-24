@@ -34,6 +34,7 @@ public:
 
     int emit(const std::string &command);
 
+    void emitFile(const string &path);
     void emitLeftBrace() { emit("{"); };
     void emitRightBrace() { emit("}"); };
     void returnFunc(string ret_type);
@@ -56,8 +57,6 @@ public:
     void emitGlobal(const string &dataLine);
     
     void printGlobalBuffer();
-
-    void testBuffer();
 
     /** Methods for creating and getting addresses of varibales in the stack*/
 
