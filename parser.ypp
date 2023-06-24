@@ -94,7 +94,7 @@ Statement: LBRACE
             }
             Ps M Statement
             {
-               $$ = new Statement(dynamic_cast<Exp*>($3), dynamic_cast<MarkerM*>($6), dynamic_cast<Statement*>($7), dynamic_cast<MarkerM*>($11), dynamic_cast<Statement*>($12));
+               $$ = new Statement(dynamic_cast<Exp*>($3), dynamic_cast<MarkerM*>($6), dynamic_cast<Statement*>($7), dynamic_cast<MarkerM*>($12), dynamic_cast<Statement*>($13));
                symbolTable.popScope();
             }
          | WHILE LPAREN M isBool RPAREN                             
@@ -103,7 +103,7 @@ Statement: LBRACE
             } 
             M Statement
             { 
-                $$ = new Statement(dynamic_cast<MarkerM*>($3), dynamic_cast<Exp*>($4), dynamic_cast<MarkerM*>($6), dynamic_cast<Statement*>($7));
+                $$ = new Statement(dynamic_cast<MarkerM*>($3), dynamic_cast<Exp*>($4), dynamic_cast<MarkerM*>($7), dynamic_cast<Statement*>($8));
                 symbolTable.popScope();
             }
          | BREAK SC                                                 {$$ = new Statement("break");}
