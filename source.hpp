@@ -163,7 +163,7 @@ public:
 
     Exp(const RawNumber *num, const string type);
 
-    Exp(bool is_not, const Exp *bool_exp);
+    Exp(bool is_not, const Exp *exp);
 
     Exp(const Exp *left_exp, const BinOp *op, const Exp *right_exp);
 

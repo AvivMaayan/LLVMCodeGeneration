@@ -61,6 +61,19 @@ Exp::Exp(const string type, const string value)
     }
 
     this->value = value;
+
+    /** When we have const 'true' or 'false' we can use reg to store them.
+     * This way 'evaluateBoolToReg()' won't be called in assignment or returning.
+    */
+    if (type == "bool")
+    {
+        // this->reg = value;
+        int address = buffer.emit("br label @");
+        if (value == "true")
+            this->true_list = buffer.makelist(LabelLocation(address, FIRST));
+        else
+            this->false_list = buffer.makelist(LabelLocation(address, FIRST));
+    }
 }
 
 Exp::Exp(const RawNumber *num, const string type)
@@ -81,22 +94,26 @@ Exp::Exp(const RawNumber *num, const string type)
     this->reg = num->value;
 }
 
-Exp::Exp(bool is_not, const Exp *bool_exp)
-    : Node(bool_exp->type)
+Exp::Exp(bool is_not, const Exp *exp)
+    : Node(exp->type)
 {
-    assert(bool_exp->type == "bool");
+    if (exp->type != "bool")
+    {
+        this->reg = exp->reg;
+        return;
+    }
 
     if (is_not)
     {
-        this->value = (bool_exp->value == "true") ? "false" : "true";
-        this->true_list = bool_exp->false_list;
-        this->false_list = bool_exp->true_list;
+        this->value = (exp->value == "true") ? "false" : "true";
+        this->true_list = exp->false_list;
+        this->false_list = exp->true_list;
     }
     else
     {
-        this->value = bool_exp->value;
-        this->true_list = bool_exp->true_list;
-        this->false_list = bool_exp->false_list;
+        this->value = exp->value;
+        this->true_list = exp->true_list;
+        this->false_list = exp->false_list;
     }
 }
 
@@ -130,8 +147,16 @@ Exp::Exp(const Exp *left_exp, const BinOp *op, const Exp *right_exp)
         break;
     }
 
-    string code = this->reg + " = " + op_code + " i32 " + left_exp->reg + ", " + right_exp->reg;
-    buffer.emit(code);
+    buffer.emit(this->reg + " = " + op_code + " i32 " + left_exp->reg + ", " + right_exp->reg);
+
+    if (this->type == "byte")
+    {
+        /** All BinOps aare calculated as Ints.
+         * Threfore, we need to mask out additional bits when the type is Byte */
+        string new_reg = buffer.genReg();
+        buffer.emit(new_reg + " = and i32 255, " + this->reg);
+        this->reg = new_reg;
+    }
 }
 
 Exp::Exp(const Exp *left_exp, const BoolOp *op, const MarkerM *mark, const Exp *right_exp)
@@ -216,6 +241,7 @@ Exp::Exp(const Type *new_type, const Exp *exp)
 
     this->type = new_type->type;
     this->value = exp->value;
+    this->reg = exp->reg;
 }
 
 Exp::Exp(const Id *id)
@@ -234,6 +260,22 @@ Exp::Exp(const Id *id)
     int offset = symbolTable.getSymbolOffset(id->name);
     bool is_arg = (offset < 0);
     this->reg = (is_arg) ? this->getArgReg(offset) : this->loadGetVar(offset);
+
+    if (this->type == "bool")
+    {
+        /** If the stored varibale is boolean, we beed to create a conditioned branch
+         * command and lists for backpatching it.
+         * To do so we'll compare current value with 'false' and store the result
+         * in a new register.
+        */
+        string new_reg = buffer.genReg();
+        string compare_code = new_reg + " = icmp ne i32 0, " + this->reg;
+        this->reg = new_reg;
+        buffer.emit(compare_code);
+        int address = buffer.emit("br i1 " + this->reg + ", label @, label @");
+        this->true_list = buffer.makelist(LabelLocation(address, FIRST));
+        this->false_list = buffer.makelist(LabelLocation(address, SECOND));
+    }
 }
 
 string Exp::loadGetVar(int offset)
@@ -376,7 +418,7 @@ void Statements::enforceReturn()
         string return_type_llvm = buffer.typeCode(return_type_c);
         string default_val_llvm = buffer.getDefaultValue(return_type_c);
 
-        buffer.emit("ret" + return_type_llvm + " " + default_val_llvm);
+        buffer.emit("ret " + return_type_llvm + " " + default_val_llvm);
         return;
     }
 
@@ -418,8 +460,7 @@ Statement::Statement(Type *type, Id *id) : Node(), break_list(), cont_list()
     this->type = type->type;
     /******************* code generation: *****************************/
     /* store default value within this variable on the stack*/
-    // buffer.storeVariable(symbolTable.getCurrentRbp(), offset, buffer.getDefaultValue(this->type));
-
+    buffer.storeVariable(symbolTable.getCurrentRbp(), offset, buffer.getDefaultValue(this->type));
 }
 
 /* Type ID ASSIGN Exp SC --- int x = 6*/

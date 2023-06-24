@@ -1,12 +1,16 @@
-void main() {
-return;
+void main() 
+{
+	return;
 }
 
-int nit()
+int CosAmak()
 {
-	int x = 5;
-    while(x > 0) 
-	{ 
-		x = x - 1;
+	bool flag = true;
+
+	if (8b == 8)
+	{
+		return (int)(200b + 100b);
 	}
+
+	return 2;
 }
