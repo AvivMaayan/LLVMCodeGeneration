@@ -1,7 +1,3 @@
-void main() 
-{
-	return false or true;
-}
 
 int CosAmak()
 {
@@ -13,4 +9,10 @@ int CosAmak()
 	}
 
 	return 2;
+
+}
+
+void main() 
+{
+	printi(CosAmak());
 }

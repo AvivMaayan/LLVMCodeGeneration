@@ -172,7 +172,7 @@ CodeBuffer &buffer = CodeBuffer::instance();
 
 int main()
 {
-    buffer.emit_globals();
+    buffer.emitGlobals();
     int parse_rc = yyparse();
     buffer.printGlobalBuffer();
     buffer.printCodeBuffer();

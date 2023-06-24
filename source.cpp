@@ -903,7 +903,12 @@ FuncDecl::FuncDecl(const Override *override_node,
 
 string FuncDecl::funcNameCode(string name, int version)
 {
-    return "@" + name + "_" + std::to_string(version);
+    string func_name = "@" + name;
+    if (name != "main")
+    {
+        func_name += "_" + std::to_string(version);
+    }
+    return func_name;
 }
 
 string FuncDecl::formalsCode(vector<string> formals_types)
