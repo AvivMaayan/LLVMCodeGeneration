@@ -1,17 +1,12 @@
 void main() {
-	// int life = 4 * 10 + 2;
-	bool flag2;
-	flag2 = ((4 > 5) or (10 != 10)) and (5 == 5);
-	// bool flag2 = ((4 > 5) or (10 != 10)) and (5 == 5);
-
-	return;
+return;
 }
 
-bool nit()
+int nit()
 {
 	int x = 5;
-	if(x>3) {
-		return true;
+    while(x > 0) 
+	{ 
+		x = x - 1;
 	}
-	return false;
 }
