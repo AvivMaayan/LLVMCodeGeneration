@@ -186,14 +186,14 @@ public:
 class ExpList : public Node
 {
 public:
-    // vector<Exp> exp_list;
-    vector<string> exp_list;
+    vector<Exp*> exp_list = {};
+    // vector<string> exp_list;
 
     ExpList() {}
 
-    ExpList(const Exp *expression);
+    ExpList(Exp *expression);
 
-    ExpList(const Exp *additional_exp, const ExpList *current_list);
+    ExpList(Exp *additional_exp, ExpList *current_list);
 
     virtual ~ExpList() = default;
 
@@ -206,8 +206,21 @@ public:
     string name;
     ExpList exp_list;
     string return_type;
+    int version;
+    string reg = "";
+    vector<LabelLocation> true_list = {};
+    vector<LabelLocation> false_list = {};
+    vector<LabelLocation> next_list = {};
 
     Call(const string name, ExpList *exp_list = nullptr);
+
+    string getLlvmArgs();
+
+    void callVoidFunction();
+
+    void callBoolFunction();
+    
+    void callFunction();
 
     virtual ~Call() = default;
 };

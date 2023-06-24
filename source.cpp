@@ -242,7 +242,9 @@ string Exp::loadGetVar(int offset)
     return buffer.loadVaribale(rbp, offset);
 }
 
-Exp::Exp(const Call *call) : Node(call->return_type) {}
+Exp::Exp(const Call *call) : Node(call->return_type) {
+    this->reg = call->reg;
+}
 
 void Exp::evaluateBoolToReg()
 {
@@ -267,15 +269,17 @@ void Exp::evaluateBoolToReg()
     buffer.emit(this->reg + " = phi i32 [1, %" + true_label + "], [0, %" + false_label + "]");
 }
 
-ExpList::ExpList(const Exp *expression)
+ExpList::ExpList(Exp *expression)
 {
-    this->exp_list.push_back(expression->type);
+    this->exp_list.push_back(expression);
 }
 
-ExpList::ExpList(const Exp *additional_exp, const ExpList *current_list)
-    : exp_list(current_list->exp_list)
+ExpList::ExpList(Exp *additional_exp, ExpList *current_list)
 {
-    this->exp_list.insert(this->exp_list.begin(), additional_exp->type);
+    if(current_list != nullptr) {
+        this->exp_list = vector<Exp*>(current_list->exp_list);
+    }
+    this->exp_list.insert(this->exp_list.begin(), additional_exp);
 }
 
 Call::Call(const string name, ExpList *exp_list)
@@ -291,7 +295,7 @@ Call::Call(const string name, ExpList *exp_list)
         exp_list = new ExpList();
     }
 
-    vector<string> ret_types = symbolTable.getLegalCallReturnTypes(name, exp_list->getTypesVector());
+    vector<pair<string, int>> ret_types = symbolTable.getLegalCallReturnTypes(name, exp_list->getTypesVector());
 
     if (ret_types.empty())
     {
@@ -307,20 +311,109 @@ Call::Call(const string name, ExpList *exp_list)
 
     this->name = name;
     this->exp_list = *exp_list;
-    this->return_type = ret_types[0];
+    this->return_type = ret_types[0].first;
+    this->version = ret_types[0].second;
+
+    /* generate a fresh reg for this function call result*/
+    this->reg = buffer.genReg();
+    /* print the correct call according to function*/
+    if (this->return_type == "void")
+    {
+        callVoidFunction();
+    }
+    else if (this->return_type == "bool")
+    {
+        callBoolFunction();
+    }
+    else
+    {
+        callFunction();
+    }
+}
+
+/**
+ * emit the call command for printf function
+ */
+void Call::callVoidFunction()
+{
+    string args = getLlvmArgs();
+    string function_full_name = this->name + "_" + std::to_string(this->version);
+    /* the return type is void*/
+    buffer.emit("call void @" + function_full_name + "(" + args + ")");
+}
+
+/**
+ * emit the call command for printi function
+ */
+void Call::callBoolFunction()
+{
+    string args = getLlvmArgs();
+    string function_full_name = this->name + "_" + std::to_string(this->version);
+    /* call the function and insert the result into this->reg*/
+    buffer.emit(this->reg + " = call i32 @" + function_full_name + "(" + args + ")");
+    /* generate a new reg for the result of the compare*/
+    string tmp_reg = buffer.genReg();
+    buffer.emit(tmp_reg + " = icmp ne i32 0, " + this->reg);
+    /* enter the result to this->reg*/
+    this->reg = tmp_reg;
+    /* emit a bp according to the result, and create a list for later backpatch*/
+    int address = buffer.emit("br i1 " + this->reg + " , label @, label @");
+    this->true_list = buffer.makelist(LabelLocation(address, FIRST));
+    this->false_list = buffer.makelist(LabelLocation(address, SECOND));
+}
+
+/**
+ * get the arguments of the function as a single string
+ * in the LLVM syntax
+ * @return string - the LLVM arguments of the function
+ */
+string Call::getLlvmArgs()
+{
+    string result = "";
+    for (int i = 0; i < exp_list.exp_list.size(); i++)
+    {
+        Exp *tmp = exp_list.exp_list[i];
+        /* add this expression's type*/
+        if (tmp->type == "string")
+        {
+            result += "i8* ";
+        }
+        else
+        {
+            result += "i32 ";
+        }
+        /* add this expression's reg*/
+        result += tmp->reg;
+        /* if i is not the last one, add a comma*/
+        if (i != exp_list.exp_list.size() - 1)
+        {
+            result += ",";
+        }
+    }
+    return result;
+}
+
+/**
+ * emit the call command for the function
+ */
+void Call::callFunction()
+{
+    string args = getLlvmArgs();
+    string function_full_name = this->name + "_" + std::to_string(this->version);
+    /* return type is only i32*/
+    buffer.emit(this->reg + " = call i32" + " @" + function_full_name + "(" + args + ")");
 }
 
 vector<string> ExpList::getTypesVector() const
 {
-    // vector<string> args;
+    vector<string> args;
 
-    // for (auto &exp : this->exp_list)
-    // {
-    //     args.push_back(exp.type);
-    // }
+    for (auto &exp : this->exp_list)
+    {
+        args.push_back(exp->type);
+    }
 
-    // return args;
-    return this->exp_list;
+    return args;
 }
 
 FormalDecl::FormalDecl(const Type *type, const Id *id)
@@ -365,7 +458,7 @@ vector<string> FormalList::getNamesVector() const
     return arg_names;
 }
 
-Statements::Statements(Statement *statement) 
+Statements::Statements(Statement *statement)
 {
     /* merge the lists of the Statements and Statement*/
     this->break_list = buffer.merge(this->break_list, statement->break_list);
@@ -397,7 +490,6 @@ Statement::Statement(Type *type, Id *id) : Node(), break_list(), cont_list()
     /******************* code generation: *****************************/
     /* store default value within this variable on the stack*/
     // buffer.storeVariable(symbolTable.getCurrentRbp(), offset, buffer.getDefaultValue(this->type));
-
 }
 
 /* Type ID ASSIGN Exp SC --- int x = 6*/

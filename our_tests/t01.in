@@ -2,11 +2,21 @@ void main() {
 return;
 }
 
-int nit()
+override int first() {
+	return 1;
+}
+
+override int first(int x) {
+	return 2;
+}
+
+override int first(int x, int y) {
+	return 3;
+}
+
+bool nit()
 {
-	int x = 5;
-    while(x > 0) 
-	{ 
-		x = x - 1;
-	}
+	int first1 = first();
+	int first2 = first(2);
+	int first3 = first(2, 3);
 }

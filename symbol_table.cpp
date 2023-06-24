@@ -291,11 +291,11 @@ vector<string> SymbolTable::getFuncDeclReturnTypes(const string name, const vect
     return returnTypes;
 }
 
-vector<string> SymbolTable::getLegalCallReturnTypes(const string name, const vector<string> &parametersTypes)
+vector<pair<string, int>> SymbolTable::getLegalCallReturnTypes(const string name, const vector<string> &parametersTypes)
 {
     PScope pScope;
     PSymbol pSymbol;
-    vector<string> returnTypes;
+    vector<pair<string, int>> returnTypes;
     /* Search all scopes one at a time from the begining*/
     for (auto it = m_scopes.begin(); it != m_scopes.end(); it++)
     {
@@ -307,7 +307,8 @@ vector<string> SymbolTable::getLegalCallReturnTypes(const string name, const vec
             /* if the symbol has the same name && if the symbol has the "same" parameters types*/
             if (pSymbol->m_name == name && compareTypeVectors(pSymbol->m_parameters, parametersTypes))
             {
-                returnTypes.push_back(pSymbol->m_returnType);
+                auto pair = std::pair<string, int>(pSymbol->m_returnType, pSymbol->m_version);
+                returnTypes.push_back(pair);
             }
         }
     }

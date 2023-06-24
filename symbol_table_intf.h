@@ -239,10 +239,10 @@ public:
      * given parametersTypes to its arguments.
      * @param name name of the function in the call
      * @param parametersTypes types in the call
-     * @return vector<string> all of the return types of the suitable functions
+     * @return vector<pair<string, int>> all of the (return type, version) pairs of the suitable functions
      *         empty vector if no func allowed
      */
-    vector<string> getLegalCallReturnTypes(const string name, const vector<string> &parametersTypes);
+    vector<pair<string, int>> getLegalCallReturnTypes(const string name, const vector<string> &parametersTypes);
 
     /**
      * Get the symbol's type from any of the Scopes (if it exists).
