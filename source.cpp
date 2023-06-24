@@ -365,11 +365,31 @@ vector<string> FormalList::getNamesVector() const
     return arg_names;
 }
 
-Statements::Statements(Statement *statement) 
+void Statements::enforceReturn()
+{
+    if (this->return_in_last)
+        return;
+
+    string return_type_c = symbolTable.getClosestReturnType();
+    if (return_type_c != "void")
+    {
+        string return_type_llvm = buffer.typeCode(return_type_c);
+        string default_val_llvm = buffer.getDefaultValue(return_type_c);
+
+        buffer.emit("ret" + return_type_llvm + " " + default_val_llvm);
+        return;
+    }
+
+    buffer.emit("ret void");
+    return;
+}
+
+Statements::Statements(Statement *statement)
 {
     /* merge the lists of the Statements and Statement*/
     this->break_list = buffer.merge(this->break_list, statement->break_list);
     this->cont_list = buffer.merge(this->cont_list, statement->cont_list);
+    this->return_in_last = statement->return_statement;
     delete statement;
 }
 
@@ -378,6 +398,8 @@ Statements::Statements(Statements *statements, Statement *statement) : Node(), c
     /* merge the lists of the Statements and Statement that were given into this one*/
     this->break_list = buffer.merge(statements->break_list, statement->break_list);
     this->cont_list = buffer.merge(statements->cont_list, statement->cont_list);
+    this->return_in_last = statement->return_statement;
+
     delete statement;
     delete statements;
 }
@@ -470,6 +492,7 @@ Statement::Statement(const string operation) : Node(), break_list(), cont_list()
             exit(1);
         }
         /******************* code generation: *****************************/
+        this->return_statement = true;
         buffer.emit("ret void");
     }
     else
@@ -510,6 +533,7 @@ Statement::Statement(Exp *exp) : Node(), break_list(), cont_list()
         exit(1);
     }
     /******************* code generation: *****************************/
+    this->return_statement = true;
     returnCode(exp);
 }
 
@@ -618,15 +642,10 @@ void Statement::assignCode(Exp *exp, int offset)
 void Statement::returnCode(Exp *exp)
 {
     /* convert return type to LLVM syntax*/
-    string returnType = symbolTable.getClosestReturnType();
-    if (returnType == "string")
-    {
-        returnType = "i8*";
-    }
-    else
-    {
-        returnType = "i32";
-    }
+    string returnType = (symbolTable.getClosestReturnType() == "string")
+                        ? "i8*"
+                        : "i32";
+
     /* make sure exp->reg has the correct result*/
     if (!exp->in_reg())
     {
@@ -714,18 +733,9 @@ FuncDecl::FuncDecl(const Override *override_node,
         exit(1);
     }
 
-    buffer.emit("define " + returnTypeCode(ret_type) + " " + funcNameCode(name, version) + formalsCode(arg_types));
+    buffer.emit("define " + buffer.typeCode(ret_type) + " " + funcNameCode(name, version) + formalsCode(arg_types));
     buffer.emitLeftBrace();
     symbolTable.setCurrentRbp(buffer.allocFunctionRbp());
-}
-
-string FuncDecl::returnTypeCode(string ret_type)
-{
-    if (ret_type == "void")
-        return "void";
-    if (ret_type == "string")
-        return "i8*";
-    return "i32";
 }
 
 string FuncDecl::funcNameCode(string name, int version)

@@ -43,7 +43,7 @@ FuncDecl: OverRide RetType ID LPAREN Formals
           }
           RPAREN LBRACE Statements RBRACE
           {
-            buffer.returnFunc(symbolTable.getClosestReturnType());
+            dynamic_cast<Statements*>($9)->enforceReturn();
             symbolTable.popScope();
           }
 
@@ -67,11 +67,18 @@ Statements: Statement                                               {$$ = new St
           | Statements Statement                                    {$$ = new Statements(dynamic_cast<Statements*>($1), dynamic_cast<Statement*>($2));}
 
 Statement: LBRACE 
-            {symbolTable.pushScope(false);} 
-            Statements 
-            {symbolTable.popScope();} 
-            RBRACE 
-            { $$ = new Statement(); dynamic_cast<Statement*>($$)->mergeLists(dynamic_cast<Statements*>($3)); }                              
+           {
+                symbolTable.pushScope(false);
+           }
+           Statements
+           {
+                symbolTable.popScope();
+           }
+           RBRACE
+           {
+                $$ = new Statement();
+                dynamic_cast<Statement*>($$)->mergeLists(dynamic_cast<Statements*>($3)); 
+           }
          | Type ID SC                                               {$$ = new Statement(dynamic_cast<Type*>($1),
                                                                                         dynamic_cast<Id*>($2));}
          | Type ID ASSIGN Exp SC                                    {$$ = new Statement(dynamic_cast<Type*>($1),
