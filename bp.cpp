@@ -79,10 +79,6 @@ void CodeBuffer::printCodeBuffer()
         cout << *it << endl;
     }
 }
-/**
- * gets a pair<int,BranchLabelIndex> item of the form
- * {buffer_location, branch_label_index} and creates a list for it
- */
 void CodeBuffer::returnFunc(string ret_type)
 {
     if (buffer.back().find("return") == std::string::npos)
@@ -90,6 +86,28 @@ void CodeBuffer::returnFunc(string ret_type)
     emitRightBrace();
 }
 
+string CodeBuffer::typeCode(string c_type)
+{
+    if (c_type == "void")
+        return "void";
+    if (c_type == "string")
+        return "i8*";
+    return "i32";
+}
+
+string CodeBuffer::getDefaultValue(string c_type)
+{
+    if (c_type == "void")
+        return "";
+    if (c_type == "bool")
+        return "false";
+    return "0";
+}
+
+/**
+ * gets a pair<int,BranchLabelIndex> item of the form
+ * {buffer_location, branch_label_index} and creates a list for it
+ */
 vector<LabelLocation> CodeBuffer::makelist(LabelLocation item)
 {
     vector<LabelLocation> newList;

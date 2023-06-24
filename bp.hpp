@@ -37,6 +37,8 @@ public:
     void emitLeftBrace() { emit("{"); };
     void emitRightBrace() { emit("}"); };
     void returnFunc(string ret_type);
+    string typeCode(string ret_type);
+    string getDefaultValue(string ret_type);
 
     static vector<LabelLocation> makelist(LabelLocation item);
 

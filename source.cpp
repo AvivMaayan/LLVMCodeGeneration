@@ -61,6 +61,19 @@ Exp::Exp(const string type, const string value)
     }
 
     this->value = value;
+
+    /** When we have const 'true' or 'false' we can use reg to store them.
+     * This way 'evaluateBoolToReg()' won't be called in assignment or returning.
+    */
+    if (type == "bool")
+    {
+        // this->reg = value;
+        int address = buffer.emit("br label @");
+        if (value == "true")
+            this->true_list = buffer.makelist(LabelLocation(address, FIRST));
+        else
+            this->false_list = buffer.makelist(LabelLocation(address, FIRST));
+    }
 }
 
 Exp::Exp(const RawNumber *num, const string type)
@@ -81,22 +94,26 @@ Exp::Exp(const RawNumber *num, const string type)
     this->reg = num->value;
 }
 
-Exp::Exp(bool is_not, const Exp *bool_exp)
-    : Node(bool_exp->type)
+Exp::Exp(bool is_not, const Exp *exp)
+    : Node(exp->type)
 {
-    assert(bool_exp->type == "bool");
+    if (exp->type != "bool")
+    {
+        this->reg = exp->reg;
+        return;
+    }
 
     if (is_not)
     {
-        this->value = (bool_exp->value == "true") ? "false" : "true";
-        this->true_list = bool_exp->false_list;
-        this->false_list = bool_exp->true_list;
+        this->value = (exp->value == "true") ? "false" : "true";
+        this->true_list = exp->false_list;
+        this->false_list = exp->true_list;
     }
     else
     {
-        this->value = bool_exp->value;
-        this->true_list = bool_exp->true_list;
-        this->false_list = bool_exp->false_list;
+        this->value = exp->value;
+        this->true_list = exp->true_list;
+        this->false_list = exp->false_list;
     }
 }
 
@@ -130,8 +147,16 @@ Exp::Exp(const Exp *left_exp, const BinOp *op, const Exp *right_exp)
         break;
     }
 
-    string code = this->reg + " = " + op_code + " i32 " + left_exp->reg + ", " + right_exp->reg;
-    buffer.emit(code);
+    buffer.emit(this->reg + " = " + op_code + " i32 " + left_exp->reg + ", " + right_exp->reg);
+
+    if (this->type == "byte")
+    {
+        /** All BinOps aare calculated as Ints.
+         * Threfore, we need to mask out additional bits when the type is Byte */
+        string new_reg = buffer.genReg();
+        buffer.emit(new_reg + " = and i32 255, " + this->reg);
+        this->reg = new_reg;
+    }
 }
 
 Exp::Exp(const Exp *left_exp, const BoolOp *op, const MarkerM *mark, const Exp *right_exp)
@@ -216,6 +241,7 @@ Exp::Exp(const Type *new_type, const Exp *exp)
 
     this->type = new_type->type;
     this->value = exp->value;
+    this->reg = exp->reg;
 }
 
 Exp::Exp(const Id *id)
@@ -234,6 +260,22 @@ Exp::Exp(const Id *id)
     int offset = symbolTable.getSymbolOffset(id->name);
     bool is_arg = (offset < 0);
     this->reg = (is_arg) ? this->getArgReg(offset) : this->loadGetVar(offset);
+
+    if (this->type == "bool")
+    {
+        /** If the stored varibale is boolean, we beed to create a conditioned branch
+         * command and lists for backpatching it.
+         * To do so we'll compare current value with 'false' and store the result
+         * in a new register.
+        */
+        string new_reg = buffer.genReg();
+        string compare_code = new_reg + " = icmp ne i32 0, " + this->reg;
+        this->reg = new_reg;
+        buffer.emit(compare_code);
+        int address = buffer.emit("br i1 " + this->reg + ", label @, label @");
+        this->true_list = buffer.makelist(LabelLocation(address, FIRST));
+        this->false_list = buffer.makelist(LabelLocation(address, SECOND));
+    }
 }
 
 string Exp::loadGetVar(int offset)
@@ -458,11 +500,31 @@ vector<string> FormalList::getNamesVector() const
     return arg_names;
 }
 
+void Statements::enforceReturn()
+{
+    if (this->return_in_last)
+        return;
+
+    string return_type_c = symbolTable.getClosestReturnType();
+    if (return_type_c != "void")
+    {
+        string return_type_llvm = buffer.typeCode(return_type_c);
+        string default_val_llvm = buffer.getDefaultValue(return_type_c);
+
+        buffer.emit("ret " + return_type_llvm + " " + default_val_llvm);
+        return;
+    }
+
+    buffer.emit("ret void");
+    return;
+}
+
 Statements::Statements(Statement *statement)
 {
     /* merge the lists of the Statements and Statement*/
     this->break_list = buffer.merge(this->break_list, statement->break_list);
     this->cont_list = buffer.merge(this->cont_list, statement->cont_list);
+    this->return_in_last = statement->return_statement;
     delete statement;
 }
 
@@ -471,6 +533,8 @@ Statements::Statements(Statements *statements, Statement *statement) : Node(), c
     /* merge the lists of the Statements and Statement that were given into this one*/
     this->break_list = buffer.merge(statements->break_list, statement->break_list);
     this->cont_list = buffer.merge(statements->cont_list, statement->cont_list);
+    this->return_in_last = statement->return_statement;
+
     delete statement;
     delete statements;
 }
@@ -489,7 +553,7 @@ Statement::Statement(Type *type, Id *id) : Node(), break_list(), cont_list()
     this->type = type->type;
     /******************* code generation: *****************************/
     /* store default value within this variable on the stack*/
-    // buffer.storeVariable(symbolTable.getCurrentRbp(), offset, buffer.getDefaultValue(this->type));
+    buffer.storeVariable(symbolTable.getCurrentRbp(), offset, buffer.getDefaultValue(this->type));
 }
 
 /* Type ID ASSIGN Exp SC --- int x = 6*/
@@ -564,6 +628,7 @@ Statement::Statement(const string operation) : Node(), break_list(), cont_list()
             exit(1);
         }
         /******************* code generation: *****************************/
+        this->return_statement = true;
         buffer.emit("ret void");
     }
     else
@@ -604,6 +669,7 @@ Statement::Statement(Exp *exp) : Node(), break_list(), cont_list()
         exit(1);
     }
     /******************* code generation: *****************************/
+    this->return_statement = true;
     returnCode(exp);
 }
 
@@ -712,15 +778,10 @@ void Statement::assignCode(Exp *exp, int offset)
 void Statement::returnCode(Exp *exp)
 {
     /* convert return type to LLVM syntax*/
-    string returnType = symbolTable.getClosestReturnType();
-    if (returnType == "string")
-    {
-        returnType = "i8*";
-    }
-    else
-    {
-        returnType = "i32";
-    }
+    string returnType = (symbolTable.getClosestReturnType() == "string")
+                        ? "i8*"
+                        : "i32";
+
     /* make sure exp->reg has the correct result*/
     if (!exp->in_reg())
     {
@@ -808,18 +869,9 @@ FuncDecl::FuncDecl(const Override *override_node,
         exit(1);
     }
 
-    buffer.emit("define " + returnTypeCode(ret_type) + " " + funcNameCode(name, version) + formalsCode(arg_types));
+    buffer.emit("define " + buffer.typeCode(ret_type) + " " + funcNameCode(name, version) + formalsCode(arg_types));
     buffer.emitLeftBrace();
     symbolTable.setCurrentRbp(buffer.allocFunctionRbp());
-}
-
-string FuncDecl::returnTypeCode(string ret_type)
-{
-    if (ret_type == "void")
-        return "void";
-    if (ret_type == "string")
-        return "i8*";
-    return "i32";
 }
 
 string FuncDecl::funcNameCode(string name, int version)

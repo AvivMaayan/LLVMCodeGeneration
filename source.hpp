@@ -163,7 +163,7 @@ public:
 
     Exp(const RawNumber *num, const string type);
 
-    Exp(bool is_not, const Exp *bool_exp);
+    Exp(bool is_not, const Exp *exp);
 
     Exp(const Exp *left_exp, const BinOp *op, const Exp *right_exp);
 
@@ -269,6 +269,10 @@ class Statements : public Node
 public:
     vector<LabelLocation> cont_list = {};
     vector<LabelLocation> break_list = {};
+
+    bool return_in_last{false};
+    void enforceReturn();
+
     /* Statements: Statement*/
     Statements(Statement *statement);
     /* Statements: Statements Statement*/
@@ -282,6 +286,8 @@ class Statement : public Node
 public:
     vector<LabelLocation> cont_list = {};
     vector<LabelLocation> break_list = {};
+    bool return_statement{false};
+
     /* Type ID SC*/
     Statement(Type *type, Id *id);
     /* Type ID ASSIGN Exp SC*/
@@ -324,7 +330,6 @@ public:
              const Id *id_node,
              const FormalList *formals_node);
 
-    string returnTypeCode(string ret_type);
     string funcNameCode(string name, int version);
     string formalsCode(vector<string> formals_types);
 
