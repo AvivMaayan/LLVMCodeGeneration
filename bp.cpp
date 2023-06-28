@@ -11,7 +11,10 @@ CodeBuffer::CodeBuffer() : buffer(), globalDefs(), regCounter(0) {}
 
 void CodeBuffer::emitGlobals()
 {
-    this->emitFile("print_functions.llvm");
+    string path = "/home/aviv.m/Compilation/LLVMCodeGeneration/print_functions.llvm";
+    // string path = "print_functions.llvm"
+
+    this->emitFile(path);
 }
 
 /**
@@ -229,6 +232,15 @@ string CodeBuffer::loadVaribale(string rbp, int offset)
     emit(reg + " = load i32, i32* " + varPtr);
     return reg;
 }
+
+string CodeBuffer::paddReg(string reg, string type_code)
+{
+    string old_reg = reg;
+    reg = genReg();
+    emit(reg + " = zext " + type_code + " " + old_reg + " to i32");
+    return reg;
+}
+
 /**
  * Store a new variable in the offset address on the stack after rbp. The value
  * is identified with "reg" register name.
@@ -236,13 +248,22 @@ string CodeBuffer::loadVaribale(string rbp, int offset)
  * @param offset the offset (positive) from this base address
  * @param reg the name of the register holding the value to store
  */
-void CodeBuffer::storeVariable(string rbp, int offset, string reg)
+string CodeBuffer::storeVariable(string rbp, int offset, string reg, string type)
 {
     string varPtr = genReg();
+
+    string type_code = typeCode(type);
+    if (type_code != "i32")
+    {
+        reg = paddReg(reg, type_code);
+    }
+
     /* get the pointer to the correct address within the register varPtr*/
     emit(varPtr + " = getelementptr i32, i32* " + rbp + ", i32 " + std::to_string(offset));
     /* store in the memory*/
     emit("store i32 " + reg + ", i32* " + varPtr);
+
+    return reg;
 }
 /**
  * Alloc a new register and emit a line stating this register holds the

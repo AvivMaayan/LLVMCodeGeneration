@@ -69,8 +69,10 @@ public:
 
     string loadVaribale(string rbp, int offset);
 
-    void storeVariable(string rbp, int offset, string reg);
-    
+    string paddReg(string reg, string type_code);
+
+    string storeVariable(string rbp, int offset, string reg, string type);
+
     string allocFunctionRbp();
 };
 

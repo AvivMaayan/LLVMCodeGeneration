@@ -166,6 +166,11 @@ Exp::Exp(const Exp *left_exp, const BinOp *op, const Exp *right_exp)
             op_code = "udiv";
         }
 
+        string type_code = buffer.typeCode(right_exp->type);
+        if (type_code != "i32")
+        {
+            reg = buffer.paddReg(reg, type_code);
+        }
         buffer.emit("call void @check_division(i32 " + right_exp->reg + ")");
         break;
     }
@@ -174,7 +179,7 @@ Exp::Exp(const Exp *left_exp, const BinOp *op, const Exp *right_exp)
 
     if (this->type == "byte")
     {
-        /** All BinOps aare calculated as Ints.
+        /** All BinOps are calculated as Ints.
          * Threfore, we need to mask out additional bits when the type is Byte */
         string new_reg = buffer.genReg();
         buffer.emit(new_reg + " = and i32 255, " + this->reg);
@@ -215,7 +220,10 @@ Exp::Exp(const Exp *left_exp, const RelOp *op, const Exp *right_exp)
         exit(1);
     }
 
-    this->reg = buffer.genReg();
+    /* In RelOps we need one register for the icmp command,
+       but we want to leave this->reg empty for the boolean
+       expression to be evaluated only when needed */
+    string reg = buffer.genReg();
 
     string op_code;
     switch (op->opType)
@@ -240,9 +248,9 @@ Exp::Exp(const Exp *left_exp, const RelOp *op, const Exp *right_exp)
         break;
     }
 
-    string compare_code = this->reg + " = icmp " + op_code + " i32 " + left_exp->reg + ", " + right_exp->reg;
+    string compare_code = reg + " = icmp " + op_code + " i32 " + left_exp->reg + ", " + right_exp->reg;
     buffer.emit(compare_code);
-    int address = buffer.emit("br i1 " + this->reg + ", label @, label @");
+    int address = buffer.emit("br i1 " + reg + ", label @, label @");
     this->true_list = buffer.makelist(LabelLocation(address, FIRST));
     this->false_list = buffer.makelist(LabelLocation(address, SECOND));
 }
@@ -286,11 +294,10 @@ Exp::Exp(const Id *id)
 
     if (this->type == "bool")
     {
-        /** If the stored varibale is boolean, we beed to create a conditioned branch
+        /* If the stored varibale is boolean, we beed to create a conditioned branch
          * command and lists for backpatching it.
          * To do so we'll compare current value with 'false' and store the result
-         * in a new register.
-         */
+         * in a new register. */
         string new_reg = buffer.genReg();
         string compare_code = new_reg + " = icmp ne i32 0, " + this->reg;
         this->reg = new_reg;
@@ -307,9 +314,14 @@ string Exp::loadGetVar(int offset)
     return buffer.loadVaribale(rbp, offset);
 }
 
-Exp::Exp(const Call *call) : Node(call->return_type)
+Exp::Exp(const Call *call)
+ : Node(call->return_type)
 {
     this->reg = call->reg;
+    /* 
+    var_x = getTrue();
+    doSomething(getTrue() || (5 < 8));
+    */
 }
 
 void Exp::evaluateBoolToReg()
@@ -332,7 +344,7 @@ void Exp::evaluateBoolToReg()
     buffer.bpatch(phi_jump_locations, phi_label);
 
     this->reg = buffer.genReg();
-    buffer.emit(this->reg + " = phi i32 [1, %" + true_label + "], [0, %" + false_label + "]");
+    buffer.emit(this->reg + " = phi i1 [1, %" + true_label + "], [0, %" + false_label + "]");
 }
 
 ExpList::ExpList(Exp *expression)
@@ -382,51 +394,60 @@ Call::Call(const string name, ExpList *exp_list)
     this->version = ret_types[0].second;
 
     /* generate a fresh reg for this function call result*/
-    this->reg = buffer.genReg();
+    string reg = buffer.genReg();
+    string args = getLlvmArgs();
+    string function_full_name = this->name + "_" + std::to_string(this->version);
+
     /* print the correct call according to function*/
     if (this->return_type == "void")
     {
-        callVoidFunction();
+        callVoidFunction(args, function_full_name);
     }
     else if (this->return_type == "bool")
     {
-        callBoolFunction();
+        callBoolFunction(reg, args, function_full_name);
     }
     else
     {
-        callFunction();
+        callFunction(reg, args, function_full_name);
     }
 }
 
 /**
  * emit the call command for printf function
  */
-void Call::callVoidFunction()
+void Call::callVoidFunction(string args, string name)
 {
-    string args = getLlvmArgs();
-    string function_full_name = this->name + "_" + std::to_string(this->version);
     /* the return type is void*/
-    buffer.emit("call void @" + function_full_name + "(" + args + ")");
+    buffer.emit("call void @" + name + "(" + args + ")");
 }
 
 /**
  * emit the call command for printi function
  */
-void Call::callBoolFunction()
+void Call::callBoolFunction(string reg, string args, string name)
 {
-    string args = getLlvmArgs();
-    string function_full_name = this->name + "_" + std::to_string(this->version);
     /* call the function and insert the result into this->reg*/
-    buffer.emit(this->reg + " = call i32 @" + function_full_name + "(" + args + ")");
+    buffer.emit(reg + " = call i1 @" + name + "(" + args + ")");
     /* generate a new reg for the result of the compare*/
-    string tmp_reg = buffer.genReg();
-    buffer.emit(tmp_reg + " = icmp ne i32 0, " + this->reg);
+    // string tmp_reg = buffer.genReg();
+    // buffer.emit(tmp_reg + " = icmp ne i32 0, " + this->reg);
     /* enter the result to this->reg*/
-    this->reg = tmp_reg;
+    // this->reg = tmp_reg;
     /* emit a bp according to the result, and create a list for later backpatch*/
-    int address = buffer.emit("br i1 " + this->reg + " , label @, label @");
+    int address = buffer.emit("br i1 " + reg + " , label @, label @");
     this->true_list = buffer.makelist(LabelLocation(address, FIRST));
     this->false_list = buffer.makelist(LabelLocation(address, SECOND));
+}
+
+/**
+ * emit the call command for the function
+ */
+void Call::callFunction(string reg, string args, string name)
+{
+    this->reg = reg;
+    string type_code = buffer.typeCode(this->return_type);
+    buffer.emit(this->reg + " = call " + type_code + " @" + name + "(" + args + ")");
 }
 
 /**
@@ -463,17 +484,6 @@ string Call::getLlvmArgs()
         }
     }
     return result;
-}
-
-/**
- * emit the call command for the function
- */
-void Call::callFunction()
-{
-    string args = getLlvmArgs();
-    string function_full_name = this->name + "_" + std::to_string(this->version);
-    /* return type is only i32*/
-    buffer.emit(this->reg + " = call i32" + " @" + function_full_name + "(" + args + ")");
 }
 
 vector<string> ExpList::getTypesVector() const
@@ -583,7 +593,7 @@ Statement::Statement(Type *type, Id *id) : Node(), break_list(), cont_list()
     this->type = type->type;
     /******************* code generation: *****************************/
     /* store default value within this variable on the stack*/
-    buffer.storeVariable(symbolTable.getCurrentRbp(), offset, buffer.getDefaultValue(this->type));
+    buffer.storeVariable(symbolTable.getCurrentRbp(), offset, buffer.getDefaultValue(this->type), this->type);
 }
 
 /* Type ID ASSIGN Exp SC --- int x = 6*/
@@ -797,7 +807,7 @@ void Statement::assignCode(Exp *exp, int offset)
         assert(exp->type == "bool");
         exp->evaluateBoolToReg();
     }
-    buffer.storeVariable(symbolTable.getCurrentRbp(), offset, exp->reg);
+    exp->reg = buffer.storeVariable(symbolTable.getCurrentRbp(), offset, exp->reg, exp->type);
 }
 
 /**

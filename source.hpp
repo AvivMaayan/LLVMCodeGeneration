@@ -216,11 +216,11 @@ public:
 
     string getLlvmArgs();
 
-    void callVoidFunction();
+    void callVoidFunction(string args, string name);
 
-    void callBoolFunction();
+    void callBoolFunction(string reg, string args, string name);
     
-    void callFunction();
+    void callFunction(string reg, string args, string name);
 
     virtual ~Call() = default;
 };
