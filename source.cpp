@@ -215,7 +215,8 @@ Exp::Exp(const Exp *left_exp, const RelOp *op, const Exp *right_exp)
         exit(1);
     }
 
-    this->reg = buffer.genReg();
+    /* not using this->reg so that it remains empty. That way it is not: in_reg()*/
+    string reg = buffer.genReg();
 
     string op_code;
     switch (op->opType)
@@ -240,9 +241,9 @@ Exp::Exp(const Exp *left_exp, const RelOp *op, const Exp *right_exp)
         break;
     }
 
-    string compare_code = this->reg + " = icmp " + op_code + " i32 " + left_exp->reg + ", " + right_exp->reg;
+    string compare_code = reg + " = icmp " + op_code + " i32 " + left_exp->reg + ", " + right_exp->reg;
     buffer.emit(compare_code);
-    int address = buffer.emit("br i1 " + this->reg + ", label @, label @");
+    int address = buffer.emit("br i1 " + reg + ", label @, label @");
     this->true_list = buffer.makelist(LabelLocation(address, FIRST));
     this->false_list = buffer.makelist(LabelLocation(address, SECOND));
 }
@@ -282,7 +283,7 @@ Exp::Exp(const Id *id)
 
     int offset = symbolTable.getSymbolOffset(id->name);
     bool is_arg = (offset < 0);
-    this->reg = (is_arg) ? this->getArgReg(offset) : this->loadGetVar(offset);
+    this->reg = (is_arg) ? this->getArgReg(offset, this->type) : this->loadGetVar(offset);
 
     if (this->type == "bool")
     {
@@ -310,6 +311,9 @@ string Exp::loadGetVar(int offset)
 Exp::Exp(const Call *call) : Node(call->return_type)
 {
     this->reg = call->reg;
+    this->true_list = call->true_list;
+    this->false_list = call->false_list;
+    this->value = "0";
 }
 
 void Exp::evaluateBoolToReg()
@@ -329,10 +333,22 @@ void Exp::evaluateBoolToReg()
     vector<LabelLocation> phi_jump_locations = buffer.merge(
         buffer.makelist(true_jump_to_phi_loc),
         buffer.makelist(false_jump_to_phi_loc));
+
     buffer.bpatch(phi_jump_locations, phi_label);
 
     this->reg = buffer.genReg();
     buffer.emit(this->reg + " = phi i32 [1, %" + true_label + "], [0, %" + false_label + "]");
+}
+
+string Exp::getArgReg(int offset, string currentArgType)
+{
+    string reg = "%" + std::to_string((-1 - offset));
+    if (currentArgType == "int" || currentArgType == "string")
+    {
+        /* no need for conversion if the arg is interger or string*/
+        return reg;
+    }
+    return buffer.convertTypes(currentArgType, "i32", reg);
 }
 
 ExpList::ExpList(Exp *expression)
@@ -380,53 +396,68 @@ Call::Call(const string name, ExpList *exp_list)
     this->exp_list = *exp_list;
     this->return_type = ret_types[0].first;
     this->version = ret_types[0].second;
+    this->name_with_version = this->name + "_" + std::to_string(this->version);
+    string args = getLlvmArgs();
 
     /* generate a fresh reg for this function call result*/
     this->reg = buffer.genReg();
+
     /* print the correct call according to function*/
     if (this->return_type == "void")
     {
-        callVoidFunction();
+        callVoidFunction(args);
     }
     else if (this->return_type == "bool")
     {
-        callBoolFunction();
+        callBoolFunction(args);
     }
     else
     {
-        callFunction();
+        callFunction(args);
+        /* I write this here and not inside the func to make it visible. I'm explicitly changing the
+        return_type because it could either be int or byte, but the reg in the exp is an i32*/
+        // this->return_type = "int";
     }
 }
 
 /**
  * emit the call command for printf function
  */
-void Call::callVoidFunction()
+void Call::callVoidFunction(string args)
 {
-    string args = getLlvmArgs();
-    string function_full_name = this->name + "_" + std::to_string(this->version);
     /* the return type is void*/
-    buffer.emit("call void @" + function_full_name + "(" + args + ")");
+    buffer.emit("call void @" + this->name_with_version + "(" + args + ")");
 }
 
 /**
  * emit the call command for printi function
  */
-void Call::callBoolFunction()
+void Call::callBoolFunction(string args)
 {
-    string args = getLlvmArgs();
-    string function_full_name = this->name + "_" + std::to_string(this->version);
     /* call the function and insert the result into this->reg*/
-    buffer.emit(this->reg + " = call i32 @" + function_full_name + "(" + args + ")");
-    /* generate a new reg for the result of the compare*/
-    string tmp_reg = buffer.genReg();
-    buffer.emit(tmp_reg + " = icmp ne i32 0, " + this->reg);
-    /* enter the result to this->reg*/
-    this->reg = tmp_reg;
+    buffer.emit(this->reg + " = call i1 @" + this->name_with_version + "(" + args + ")");
+    // /* generate a new reg for the result of the compare*/
+    // string tmp_reg = buffer.genReg();
+    // buffer.emit(tmp_reg + " = icmp ne i1 0, " + this->reg);
+    // /* enter the result to this->reg*/
+    // this->reg = tmp_reg;
     /* emit a bp according to the result, and create a list for later backpatch*/
     int address = buffer.emit("br i1 " + this->reg + " , label @, label @");
     this->true_list = buffer.makelist(LabelLocation(address, FIRST));
     this->false_list = buffer.makelist(LabelLocation(address, SECOND));
+}
+
+/**
+ * emit the call command for the function
+ */
+void Call::callFunction(string args)
+{
+    /* return type is i32 or i8 or it's a bug*/
+    string type_code = buffer.typeCode(this->return_type);
+    assert(type_code == "i32" || type_code == "i8");
+    buffer.emit(this->reg + " = call " + type_code + " @" + this->name_with_version + "(" + args + ")");
+    /* enter the correct result to a new reg*/
+    this->reg = (type_code == "i32") ? this->reg : buffer.paddReg(this->reg, this->return_type);
 }
 
 /**
@@ -437,25 +468,34 @@ void Call::callBoolFunction()
 string Call::getLlvmArgs()
 {
     string result = "";
-    for (int i = 0; i < exp_list.exp_list.size(); i++)
+    /* get the parameters of the function as were written in the decleration*/
+    vector<string> parameters = symbolTable.getFuncParameters(this->name, this->version);
+    assert(parameters.size() == exp_list.exp_list.size());
+    int number_of_params = parameters.size();
+    for (int i = 0; i < number_of_params; i++)
     {
+        /* is this a direct ptr or copy c'tor?*/
         Exp *tmp = exp_list.exp_list[i];
-        /* add this expression's type*/
-        if (tmp->type == "string")
-        {
-            result += "i8* ";
-        }
-        else
-        {
-            result += "i32 ";
-        }
-        /* add this expression's reg*/
+        /* make sure that tmp has a value in reg*/
         if (!tmp->in_reg())
         {
             assert(tmp->type == "bool");
             tmp->evaluateBoolToReg();
         }
-        result += tmp->reg;
+        string new_reg = tmp->reg;
+
+        /* check for type mismatch between types*/
+        if (parameters[i] == "bool" || parameters[i] == "byte")
+        {
+            /* bools are stored after phi in i32*/
+            /* bytes are stored in i32 anyways*/
+            new_reg = buffer.convertTypes("int", parameters[i], tmp->reg);
+        }
+        /* add this expression's type*/
+        result += buffer.typeCode(parameters[i]);
+        result += " ";
+        /* add this expression's reg*/
+        result += new_reg;
         /* if i is not the last one, add a comma*/
         if (i != exp_list.exp_list.size() - 1)
         {
@@ -463,17 +503,6 @@ string Call::getLlvmArgs()
         }
     }
     return result;
-}
-
-/**
- * emit the call command for the function
- */
-void Call::callFunction()
-{
-    string args = getLlvmArgs();
-    string function_full_name = this->name + "_" + std::to_string(this->version);
-    /* return type is only i32*/
-    buffer.emit(this->reg + " = call i32" + " @" + function_full_name + "(" + args + ")");
 }
 
 vector<string> ExpList::getTypesVector() const
@@ -632,7 +661,6 @@ Statement::Statement(Id *id, Exp *exp) : Node(), break_list(), cont_list()
     /* assignment is legal*/
     /******************* code generation: *****************************/
     int offset = symbolTable.getSymbolOffset(id->name);
-    string type = symbolTable.getSymbolType(id->name);
     /* the case of an assignemnt to a parameter isn't supposed to be checked*/
     assert(offset >= 0);
     assignCode(exp, offset);
@@ -925,7 +953,15 @@ string FuncDecl::formalsCode(vector<string> formals_types)
 
     for (string formal_type : formals_types)
     {
-        formals_str += (formal_type == "string") ? "i8*" : "i32";
+        // formals_str += (formal_type == "string") ? "i8*" : "i32";
+        if (formal_type == "string")
+            formals_str += "i8*";
+        else if (formal_type == "bool")
+            formals_str += "i1";
+        else if (formal_type == "int")
+            formals_str += "i32";
+        else if (formal_type == "byte")
+            formals_str += "i8";
         formals_str += ", ";
     }
 

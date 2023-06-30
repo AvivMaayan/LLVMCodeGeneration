@@ -47,6 +47,9 @@ public:
     void returnFunc(string ret_type);
     string typeCode(string ret_type);
     string getDefaultValue(string ret_type);
+    string paddReg(string reg, string typeToPadd);
+    /* convert the reg from 'fromType' to 'toType' and put it a new reg*/
+    string convertTypes(string fromType, string toType, string reg);
 
     static vector<LabelLocation> makelist(LabelLocation item);
 

@@ -245,6 +245,14 @@ public:
     vector<pair<string, int>> getLegalCallReturnTypes(const string name, const vector<string> &parametersTypes);
 
     /**
+     * Get the m_parameters member of a function symbol with the given name AND version.
+     * 
+     * @param name the name of the function to look for
+     * @param version the version of the name since it might have been overriden
+    */
+    vector<string> getFuncParameters(const string name, const int version);
+
+    /**
      * Get the symbol's type from any of the Scopes (if it exists).
      * If it does not exist "" is returned.
      * @param name the name of the symbol to get from the scope

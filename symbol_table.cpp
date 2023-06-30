@@ -319,6 +319,28 @@ vector<pair<string, int>> SymbolTable::getLegalCallReturnTypes(const string name
     return returnTypes;
 }
 
+vector<string> SymbolTable::getFuncParameters(const string name, const int version)
+{
+    PScope pScope;
+    PSymbol pSymbol;
+    /* Search all scopes one at a time from the begining*/
+    for (auto it = m_scopes.begin(); it != m_scopes.end(); it++)
+    {
+        pScope = *it;
+        /* Go over all of the symbols in the scope*/
+        for (auto symIt = pScope->m_symbols.begin(); symIt != pScope->m_symbols.end(); symIt++)
+        {
+            pSymbol = *symIt;
+            /* if the symbol has the same name && if the symbol has the same version*/
+            if (pSymbol->m_name == name && pSymbol->m_version == version)
+            {
+                return pSymbol->m_parameters;
+            }
+        }
+    }
+    return {};
+}
+
 bool SymbolTable::isFuncSymbolExist(const string name, const vector<string> &parametersTypes)
 {
     PSymbol pSymbol;
