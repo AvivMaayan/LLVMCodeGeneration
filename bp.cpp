@@ -11,7 +11,8 @@ CodeBuffer::CodeBuffer() : buffer(), globalDefs(), regCounter(0) {}
 
 void CodeBuffer::emitGlobals()
 {
-    this->emitFile("print_functions.llvm");
+    string path = "/home/nitai.kluger/LLVMCodeGeneration/print_functions.llvm";
+    this->emitFile(path);
 }
 
 /**
