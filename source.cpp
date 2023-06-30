@@ -319,7 +319,7 @@ Exp::Exp(const Call *call) : Node(call->return_type)
 void Exp::evaluateBoolToReg()
 {
     assert(this->type == "bool");
-    assert(!this->in_reg());
+    // assert(!this->in_reg());
 
     string true_label = buffer.genLabel();
     LabelLocation true_jump_to_phi_loc = buffer.emitJump();
@@ -477,9 +477,10 @@ string Call::getLlvmArgs()
         /* is this a direct ptr or copy c'tor?*/
         Exp *tmp = exp_list.exp_list[i];
         /* make sure that tmp has a value in reg*/
+        // if(tmp->type == "bool")
         if (!tmp->in_reg())
         {
-            assert(tmp->type == "bool");
+            // assert(tmp->type == "bool");
             tmp->evaluateBoolToReg();
         }
         string new_reg = tmp->reg;
@@ -820,9 +821,10 @@ Statement::Statement(MarkerM *loopCondition, Exp *exp, MarkerM *loopStmts, State
  */
 void Statement::assignCode(Exp *exp, int offset)
 {
-    if (!exp->in_reg())
+    // if (!exp->in_reg())
+    if(exp->type == "bool")
     {
-        assert(exp->type == "bool");
+        // assert(exp->type == "bool");
         exp->evaluateBoolToReg();
     }
     buffer.storeVariable(symbolTable.getCurrentRbp(), offset, exp->reg);
@@ -839,7 +841,8 @@ void Statement::returnCode(Exp *exp)
     string returnType = buffer.typeCode(symbolTable.getClosestReturnType());
 
     /* make sure exp->reg has the correct result*/
-    if (!exp->in_reg())
+    // if (!exp->in_reg())
+    if(exp->type == "bool")
     {
         assert(exp->type == "bool");
         exp->evaluateBoolToReg();
