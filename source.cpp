@@ -220,9 +220,7 @@ Exp::Exp(const Exp *left_exp, const RelOp *op, const Exp *right_exp)
         exit(1);
     }
 
-    /* In RelOps we need one register for the icmp command,
-       but we want to leave this->reg empty for the boolean
-       expression to be evaluated only when needed */
+    /* not using this->reg so that it remains empty. That way it is not: in_reg()*/
     string reg = buffer.genReg();
 
     string op_code;
@@ -290,7 +288,7 @@ Exp::Exp(const Id *id)
 
     int offset = symbolTable.getSymbolOffset(id->name);
     bool is_arg = (offset < 0);
-    this->reg = (is_arg) ? this->getArgReg(offset) : this->loadGetVar(offset);
+    this->reg = (is_arg) ? this->getArgReg(offset, this->type) : this->loadGetVar(offset);
 
     if (this->type == "bool")
     {
@@ -300,9 +298,10 @@ Exp::Exp(const Id *id)
          * in a new register. */
         string new_reg = buffer.genReg();
         string compare_code = new_reg + " = icmp ne i32 0, " + this->reg;
-        this->reg = new_reg;
+        /* to make sure this exp is not in_reg()*/
+        this->reg = "";
         buffer.emit(compare_code);
-        int address = buffer.emit("br i1 " + this->reg + ", label @, label @");
+        int address = buffer.emit("br i1 " + new_reg + ", label @, label @");
         this->true_list = buffer.makelist(LabelLocation(address, FIRST));
         this->false_list = buffer.makelist(LabelLocation(address, SECOND));
     }
@@ -318,16 +317,25 @@ Exp::Exp(const Call *call)
  : Node(call->return_type)
 {
     this->reg = call->reg;
-    /* 
-    var_x = getTrue();
-    doSomething(getTrue() || (5 < 8));
-    */
+    if (this->type == "bool")
+    {
+        /* emit a bp according to the result, and create a list for later backpatch*/
+        int address = buffer.emit("br i1 " + this->reg + " , label @, label @");
+        this->true_list = buffer.makelist(LabelLocation(address, FIRST));
+        this->false_list = buffer.makelist(LabelLocation(address, SECOND));
+        this->reg = "";
+    }
+    // this->true_list = call->true_list;
+    // this->false_list = call->false_list;
+    this->value = "0";
 }
 
 void Exp::evaluateBoolToReg()
 {
-    assert(this->type == "bool");
-    assert(!this->in_reg());
+    if(this->type != "bool" || this->in_reg())
+    {
+        return;
+    }
 
     string true_label = buffer.genLabel();
     LabelLocation true_jump_to_phi_loc = buffer.emitJump();
@@ -341,10 +349,22 @@ void Exp::evaluateBoolToReg()
     vector<LabelLocation> phi_jump_locations = buffer.merge(
         buffer.makelist(true_jump_to_phi_loc),
         buffer.makelist(false_jump_to_phi_loc));
+
     buffer.bpatch(phi_jump_locations, phi_label);
 
     this->reg = buffer.genReg();
     buffer.emit(this->reg + " = phi i1 [1, %" + true_label + "], [0, %" + false_label + "]");
+}
+
+string Exp::getArgReg(int offset, string currentArgType)
+{
+    string reg = "%" + std::to_string((-1 - offset));
+    if (currentArgType == "int" || currentArgType == "string")
+    {
+        /* no need for conversion if the arg is interger or string*/
+        return reg;
+    }
+    return buffer.paddReg(reg, currentArgType);
 }
 
 ExpList::ExpList(Exp *expression)
@@ -392,52 +412,71 @@ Call::Call(const string name, ExpList *exp_list)
     this->exp_list = *exp_list;
     this->return_type = ret_types[0].first;
     this->version = ret_types[0].second;
-
-    /* generate a fresh reg for this function call result*/
-    string reg = buffer.genReg();
+    this->name_with_version = this->name + "_" + std::to_string(this->version);
     string args = getLlvmArgs();
-    string function_full_name = this->name + "_" + std::to_string(this->version);
 
     /* print the correct call according to function*/
     if (this->return_type == "void")
     {
-        callVoidFunction(args, function_full_name);
+        callVoidFunction(args);
     }
     else if (this->return_type == "bool")
     {
-        callBoolFunction(reg, args, function_full_name);
+        callBoolFunction(args);
     }
     else
     {
-        callFunction(reg, args, function_full_name);
+        callFunction(args);
+        /* I write this here and not inside the func to make it visible. I'm explicitly changing the
+        return_type because it could either be int or byte, but the reg in the exp is an i32*/
+        // this->return_type = "int";
     }
 }
 
 /**
  * emit the call command for printf function
  */
-void Call::callVoidFunction(string args, string name)
+void Call::callVoidFunction(string args)
 {
     /* the return type is void*/
-    buffer.emit("call void @" + name + "(" + args + ")");
+    buffer.emit("call void @" + this->name_with_version + "(" + args + ")");
 }
 
 /**
  * emit the call command for printi function
  */
-void Call::callBoolFunction(string reg, string args, string name)
+void Call::callBoolFunction(string args)
 {
+    /* generate a fresh reg for this function call result*/
+    string tmp_reg = buffer.genReg();
     /* call the function and insert the result into this->reg*/
-    buffer.emit(reg + " = call i1 @" + name + "(" + args + ")");
-    /* generate a new reg for the result of the compare*/
+    buffer.emit(tmp_reg + " = call i1 @" + this->name_with_version + "(" + args + ")");
+    this->reg = tmp_reg;
+    // /* generate a new reg for the result of the compare*/
     // string tmp_reg = buffer.genReg();
-    // buffer.emit(tmp_reg + " = icmp ne i32 0, " + this->reg);
-    /* enter the result to this->reg*/
+    // bool b = foo();
+    // b = foo() && foo(true);
+    // foo(2, phi(true));
+    // /* enter the result to this->reg*/
     // this->reg = tmp_reg;
-    /* emit a bp according to the result, and create a list for later backpatch*/
-    int address = buffer.emit("br i1 " + reg + " , label @, label @");
-    this->true_list = buffer.makelist(LabelLocation(address, FIRST));
-    this->false_list = buffer.makelist(LabelLocation(address, SECOND));
+    // /* emit a bp according to the result, and create a list for later backpatch*/
+    // int address = buffer.emit("br i1 " + tmp_reg + " , label @, label @");
+    // this->true_list = buffer.makelist(LabelLocation(address, FIRST));
+    // this->false_list = buffer.makelist(LabelLocation(address, SECOND));
+}
+
+/**
+ * emit the call command for the function
+ */
+void Call::callFunction(string args)
+{
+    this->reg = buffer.genReg();
+    /* return type is i32 or i8 or it's a bug*/
+    string type_code = buffer.typeCode(this->return_type);
+    assert(type_code == "i32" || type_code == "i8");
+    buffer.emit(this->reg + " = call " + type_code + " @" + this->name_with_version + "(" + args + ")");
+    /* enter the correct result to a new reg*/
+    this->reg = (type_code == "i32") ? this->reg : buffer.paddReg(this->reg, this->return_type);
 }
 
 /**
@@ -458,25 +497,37 @@ void Call::callFunction(string reg, string args, string name)
 string Call::getLlvmArgs()
 {
     string result = "";
-    for (int i = 0; i < exp_list.exp_list.size(); i++)
+    /* get the parameters of the function as were written in the decleration*/
+    /* foo(int, byte, bool); --> foo(int int int);*/
+    vector<string> parameters = symbolTable.getFuncParameters(this->name, this->version);
+    assert(parameters.size() == exp_list.exp_list.size());
+    int number_of_params = parameters.size();
+    for (int i = 0; i < number_of_params; i++)
     {
+        /* is this a direct ptr or copy c'tor?*/
         Exp *tmp = exp_list.exp_list[i];
-        /* add this expression's type*/
-        if (tmp->type == "string")
-        {
-            result += "i8* ";
-        }
-        else
-        {
-            result += "i32 ";
-        }
-        /* add this expression's reg*/
+        /* make sure that tmp has a value in reg*/
+        // if(tmp->type == "bool")
+        assert(tmp->in_reg());
         if (!tmp->in_reg())
         {
             assert(tmp->type == "bool");
             tmp->evaluateBoolToReg();
         }
-        result += tmp->reg;
+        string new_reg = tmp->reg;
+
+        /* check for type mismatch between types*/
+        if (parameters[i] == "bool" || parameters[i] == "byte")
+        {
+            /* bools are stored after phi in i32*/
+            /* bytes are stored in i32 anyways*/
+            new_reg = buffer.convertTypes("int", parameters[i], tmp->reg);
+        }
+        /* add this expression's type*/
+        result += buffer.typeCode(parameters[i]);
+        result += " ";
+        /* add this expression's reg*/
+        result += new_reg;
         /* if i is not the last one, add a comma*/
         if (i != exp_list.exp_list.size() - 1)
         {
@@ -642,7 +693,6 @@ Statement::Statement(Id *id, Exp *exp) : Node(), break_list(), cont_list()
     /* assignment is legal*/
     /******************* code generation: *****************************/
     int offset = symbolTable.getSymbolOffset(id->name);
-    string type = symbolTable.getSymbolType(id->name);
     /* the case of an assignemnt to a parameter isn't supposed to be checked*/
     assert(offset >= 0);
     assignCode(exp, offset);
@@ -802,9 +852,10 @@ Statement::Statement(MarkerM *loopCondition, Exp *exp, MarkerM *loopStmts, State
  */
 void Statement::assignCode(Exp *exp, int offset)
 {
+    // if(exp->type == "bool")
     if (!exp->in_reg())
     {
-        assert(exp->type == "bool");
+        // assert(exp->type == "bool");
         exp->evaluateBoolToReg();
     }
     exp->reg = buffer.storeVariable(symbolTable.getCurrentRbp(), offset, exp->reg, exp->type);
@@ -821,6 +872,7 @@ void Statement::returnCode(Exp *exp)
     string returnType = buffer.typeCode(symbolTable.getClosestReturnType());
 
     /* make sure exp->reg has the correct result*/
+    // if(exp->type == "bool")
     if (!exp->in_reg())
     {
         assert(exp->type == "bool");
@@ -935,7 +987,15 @@ string FuncDecl::formalsCode(vector<string> formals_types)
 
     for (string formal_type : formals_types)
     {
-        formals_str += (formal_type == "string") ? "i8*" : "i32";
+        // formals_str += (formal_type == "string") ? "i8*" : "i32";
+        if (formal_type == "string")
+            formals_str += "i8*";
+        else if (formal_type == "bool")
+            formals_str += "i1";
+        else if (formal_type == "int")
+            formals_str += "i32";
+        else if (formal_type == "byte")
+            formals_str += "i8";
         formals_str += ", ";
     }
 

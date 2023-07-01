@@ -144,7 +144,7 @@ private:
 
     bool isBooleanExp(const Exp *exp) { return (exp->type == "bool"); }
 
-    string getArgReg(int offset) { return "%" + std::to_string((-1 - offset)); }
+    string getArgReg(int offset, string currentArgType);
 
     string loadGetVar(int offset);
 
@@ -208,6 +208,7 @@ public:
     string return_type;
     int version;
     string reg = "";
+    string name_with_version;
     vector<LabelLocation> true_list = {};
     vector<LabelLocation> false_list = {};
     vector<LabelLocation> next_list = {};
@@ -216,11 +217,11 @@ public:
 
     string getLlvmArgs();
 
-    void callVoidFunction(string args, string name);
+    void callVoidFunction(string args);
 
-    void callBoolFunction(string reg, string args, string name);
+    void callBoolFunction(string args);
     
-    void callFunction(string reg, string args, string name);
+    void callFunction(string args);
 
     virtual ~Call() = default;
 };

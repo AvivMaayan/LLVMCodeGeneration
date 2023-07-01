@@ -11,9 +11,7 @@ CodeBuffer::CodeBuffer() : buffer(), globalDefs(), regCounter(0) {}
 
 void CodeBuffer::emitGlobals()
 {
-    string path = "/home/aviv.m/Compilation/LLVMCodeGeneration/print_functions.llvm";
-    // string path = "print_functions.llvm"
-
+    string path = "/home/nitai.kluger/LLVMCodeGeneration/print_functions.llvm";
     this->emitFile(path);
 }
 
@@ -36,8 +34,7 @@ string CodeBuffer::genLabel()
     label << buffer.size();
     std::string ret(label.str());
 
-    if (buffer.back().rfind("ret", 0) == std::string::npos
-       && buffer.back().rfind("br", 0) == std::string::npos)
+    if (buffer.back().rfind("ret", 0) == std::string::npos && buffer.back().rfind("br", 0) == std::string::npos)
     {
         emit("br label %" + ret);
     }
@@ -68,7 +65,7 @@ void CodeBuffer::emitFile(const string &path)
     std::ifstream file_stream(path);
     string line;
 
-    while(std::getline(file_stream, line))
+    while (std::getline(file_stream, line))
     {
         emitGlobal(line);
     }
@@ -135,6 +132,27 @@ string CodeBuffer::getDefaultValue(string c_type)
     if (c_type == "bool")
         return "false";
     return "0";
+}
+
+/* padd reg (which is of type typeToPadd) into i32 using zext*/
+string CodeBuffer::paddReg(string reg, string typeToPadd)
+{
+    return convertTypes(typeToPadd, "i32", reg);
+}
+
+/* convert the reg from 'fromType' to 'toType' and put it a new reg*/
+string CodeBuffer::convertTypes(string fromType, string toType, string reg)
+{
+    if(toType == "string") {
+        /* string is a ptr, we don't convert*/
+        return reg;
+    }
+    string new_reg = genReg();
+    string op = (toType == "i32") ? "zext" : "trunc";
+
+    emit(new_reg + " = " + op + " " + typeCode(fromType) + " " + reg + " to " + typeCode(toType));
+
+    return new_reg;
 }
 
 /**
