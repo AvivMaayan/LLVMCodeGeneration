@@ -1,7 +1,6 @@
 #include "source.hpp"
 #include "hw3_output.hpp"
 #include "symbol_table_intf.h"
-#include "bp.hpp"
 
 extern int yylineno;
 extern SymbolTable symbolTable;
@@ -181,7 +180,7 @@ Exp::Exp(const Exp *left_exp, const BinOp *op, const Exp *right_exp)
 
 string Exp::byteMask(string curr_reg)
 {
-    /** All BinOps aare calculated as Ints.
+    /** All BinOps are calculated as Ints.
      * Threfore, we need to mask out additional bits when the type is Byte */
     string new_reg = buffer.genReg();
     buffer.emit(new_reg + " = and i32 255, " + curr_reg);
@@ -333,8 +332,7 @@ Exp::Exp(const Call *call) : Node(call->return_type)
         this->false_list = buffer.makelist(LabelLocation(address, SECOND));
         this->reg = "";
     }
-    // this->true_list = call->true_list;
-    // this->false_list = call->false_list;
+
     this->value = "0";
     
     this->is_call = true;
@@ -438,9 +436,6 @@ Call::Call(const string name, ExpList *exp_list)
     else
     {
         callFunction(args);
-        /* I write this here and not inside the func to make it visible. I'm explicitly changing the
-        return_type because it could either be int or byte, but the reg in the exp is an i32*/
-        // this->return_type = "int";
     }
 }
 
@@ -463,17 +458,6 @@ void Call::callBoolFunction(string args)
     /* call the function and insert the result into this->reg*/
     buffer.emit(tmp_reg + " = call i1 @" + this->name_with_version + "(" + args + ")");
     this->reg = tmp_reg;
-    // /* generate a new reg for the result of the compare*/
-    // string tmp_reg = buffer.genReg();
-    // bool b = foo();
-    // b = foo() && foo(true);
-    // foo(2, phi(true));
-    // /* enter the result to this->reg*/
-    // this->reg = tmp_reg;
-    // /* emit a bp according to the result, and create a list for later backpatch*/
-    // int address = buffer.emit("br i1 " + tmp_reg + " , label @, label @");
-    // this->true_list = buffer.makelist(LabelLocation(address, FIRST));
-    // this->false_list = buffer.makelist(LabelLocation(address, SECOND));
 }
 
 /**
@@ -503,18 +487,12 @@ string Call::getLlvmArgs()
     vector<string> parameters = symbolTable.getFuncParameters(this->name, this->version);
     assert(parameters.size() == exp_list.exp_list.size());
     int number_of_params = parameters.size();
+
     for (int i = 0; i < number_of_params; i++)
     {
         /* is this a direct ptr or copy c'tor?*/
         Exp *tmp = exp_list.exp_list[i];
-        /* make sure that tmp has a value in reg*/
-        // if(tmp->type == "bool")
-        assert(tmp->in_reg());
-        if (!tmp->in_reg())
-        {
-            assert(tmp->type == "bool");
-            tmp->evaluateBoolToReg();
-        }
+
         string new_reg = tmp->reg;
 
         /* check for type mismatch between types*/
@@ -858,10 +836,8 @@ Statement::Statement(MarkerM *loopCondition, Exp *exp, MarkerM *loopStmts, State
  */
 void Statement::assignCode(Exp *exp, int offset)
 {
-    // if(exp->type == "bool")
     if (!exp->in_reg())
     {
-        // assert(exp->type == "bool");
         exp->evaluateBoolToReg();
     }
     buffer.storeVariable(symbolTable.getCurrentRbp(), offset, exp->reg);
@@ -878,7 +854,6 @@ void Statement::returnCode(Exp *exp)
     string returnType = buffer.typeCode(symbolTable.getClosestReturnType());
 
     /* make sure exp->reg has the correct result*/
-    // if(exp->type == "bool")
     if (!exp->in_reg())
     {
         assert(exp->type == "bool");
@@ -993,7 +968,6 @@ string FuncDecl::formalsCode(vector<string> formals_types)
 
     for (string formal_type : formals_types)
     {
-        // formals_str += (formal_type == "string") ? "i8*" : "i32";
         if (formal_type == "string")
             formals_str += "i8*";
         else if (formal_type == "bool")

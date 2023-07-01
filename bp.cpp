@@ -1,8 +1,8 @@
 #include "bp.hpp"
-#include <vector>
 #include <iostream>
 #include <fstream>
 #include <sstream>
+
 using namespace std;
 
 bool replace(string &str, const string &from, const string &to, const BranchLabelIndex index);
@@ -12,8 +12,11 @@ CodeBuffer::CodeBuffer() : buffer(), globalDefs(), regCounter(0) {}
 void CodeBuffer::emitGlobals()
 {
     /** @todo: make sure relative path is working */
-    string path = "/home/aviv.m/Compilation/LLVMCodeGeneration/print_functions.llvm";
+    string path = 
+    "print_functions.llvm";
+    // "/home/aviv.m/Compilation/LLVMCodeGeneration/print_functions.llvm";
     // string path = "/home/nitai.kluger/LLVMCodeGeneration/print_functions.llvm";
+
     this->emitFile(path);
 }
 
@@ -107,12 +110,6 @@ void CodeBuffer::printCodeBuffer()
         cout << *it << endl;
     }
 }
-void CodeBuffer::returnFunc(string ret_type)
-{
-    if (buffer.back().find("return") == std::string::npos)
-        emit("return"); /** @todo: default value for type*/
-    emitRightBrace();
-}
 
 string CodeBuffer::typeCode(string c_type)
 {
@@ -188,10 +185,6 @@ LabelLocation CodeBuffer::emitJump()
  */
 void CodeBuffer::labelEmit(string &labelName)
 {
-    /** We might need to close the prev block here using the first emit.
-     * @todo: Figure out
-     */
-    // emit("br label %" + labelName);
     emit(labelName + ":");
 }
 

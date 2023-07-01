@@ -4,8 +4,7 @@
 #include <vector>
 #include <iostream>
 #include <assert.h>
-// #include "bp.hpp"
-#include "common.hpp"
+#include "bp.hpp"
 
 using std::string;
 using std::vector;
