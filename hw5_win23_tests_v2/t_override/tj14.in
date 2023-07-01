@@ -1,0 +1,14 @@
+//Earliest fail degenerate case
+
+override int foo(int bar){return 1;}
+
+override
+int
+foo
+(
+int
+bar
+)
+{
+return 1;
+}

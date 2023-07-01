@@ -1,0 +1,13 @@
+override int myfunc(int a) {
+    return a;
+}
+
+override int myfunc(byte a) {
+    return a;
+}
+
+void main()
+{
+   byte a = 1b;
+   printi(myfunc(a)); 
+}

@@ -1,0 +1,9 @@
+//redef in function
+
+int foo(int bar, 
+bool bar,
+byte bar){ return 1;}
+
+void main(){
+    return;
+}

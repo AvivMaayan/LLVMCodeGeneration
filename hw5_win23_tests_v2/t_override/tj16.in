@@ -1,0 +1,9 @@
+//same name function as parameter
+
+void foo(int foo){
+    return;
+}
+
+void main(){
+    return;
+}

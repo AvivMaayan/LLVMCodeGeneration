@@ -1,0 +1,15 @@
+override void printOk(bool isOk) {
+    if (isOk) print("ok");
+}
+
+override void printOk(int isOk) {
+    if (isOk == 5) print("ok");
+}
+
+void main()
+{
+    int x = 4;
+    byte y = 100 b;
+    printOk(x>y);
+    int z;
+}
