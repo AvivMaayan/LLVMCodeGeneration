@@ -11,7 +11,9 @@ CodeBuffer::CodeBuffer() : buffer(), globalDefs(), regCounter(0) {}
 
 void CodeBuffer::emitGlobals()
 {
-    string path = "/home/nitai.kluger/LLVMCodeGeneration/print_functions.llvm";
+    /** @todo: make sure relative path is working */
+    string path = "/home/aviv.m/Compilation/LLVMCodeGeneration/print_functions.llvm";
+    // string path = "/home/nitai.kluger/LLVMCodeGeneration/print_functions.llvm";
     this->emitFile(path);
 }
 
@@ -130,7 +132,7 @@ string CodeBuffer::getDefaultValue(string c_type)
     if (c_type == "void")
         return "";
     if (c_type == "bool")
-        return "false";
+        return "0";
     return "0";
 }
 

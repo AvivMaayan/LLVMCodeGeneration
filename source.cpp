@@ -102,7 +102,7 @@ Exp::Exp(const RawNumber *num, const string type)
         exit(1);
     }
 
-    this->value = stoi(num->value);
+    this->value = num->value;
 
     // Since this is a constant number, no register is needed and
     // we can abuse the reg member to store the value itself
@@ -115,6 +115,7 @@ Exp::Exp(bool is_not, const Exp *exp)
     if (exp->type != "bool")
     {
         this->reg = exp->reg;
+        this->value = exp->value;
         return;
     }
 
@@ -141,7 +142,7 @@ Exp::Exp(const Exp *left_exp, const BinOp *op, const Exp *right_exp)
     }
 
     this->type = (left_exp->type == "int" || right_exp->type == "int") ? "int" : "byte";
-
+    this->value = "0";
     this->reg = buffer.genReg();
 
     string op_code;
@@ -174,12 +175,17 @@ Exp::Exp(const Exp *left_exp, const BinOp *op, const Exp *right_exp)
 
     if (this->type == "byte")
     {
-        /** All BinOps aare calculated as Ints.
-         * Threfore, we need to mask out additional bits when the type is Byte */
-        string new_reg = buffer.genReg();
-        buffer.emit(new_reg + " = and i32 255, " + this->reg);
-        this->reg = new_reg;
+        this->reg = this->byteMask(this->reg);
     }
+}
+
+string Exp::byteMask(string curr_reg)
+{
+    /** All BinOps aare calculated as Ints.
+     * Threfore, we need to mask out additional bits when the type is Byte */
+    string new_reg = buffer.genReg();
+    buffer.emit(new_reg + " = and i32 255, " + curr_reg);
+    return new_reg;
 }
 
 Exp::Exp(const Exp *left_exp, const BoolOp *op, const MarkerM *mark, const Exp *right_exp)
@@ -266,6 +272,11 @@ Exp::Exp(const Type *new_type, const Exp *exp)
     this->type = new_type->type;
     this->value = exp->value;
     this->reg = exp->reg;
+
+    if (this->type == "byte" && exp->type == "int")
+    {
+        this->reg = this->byteMask(this->reg);
+    }
 }
 
 Exp::Exp(const Id *id)
@@ -301,6 +312,8 @@ Exp::Exp(const Id *id)
         this->true_list = buffer.makelist(LabelLocation(address, FIRST));
         this->false_list = buffer.makelist(LabelLocation(address, SECOND));
     }
+
+    this->name = id->name;
 }
 
 string Exp::loadGetVar(int offset)
@@ -323,6 +336,9 @@ Exp::Exp(const Call *call) : Node(call->return_type)
     // this->true_list = call->true_list;
     // this->false_list = call->false_list;
     this->value = "0";
+    
+    this->is_call = true;
+    this->name = call->name;
 }
 
 void Exp::evaluateBoolToReg()
@@ -737,6 +753,11 @@ Statement::Statement(const string operation) : Node(), break_list(), cont_list()
 /* RETURN Exp SC*/
 Statement::Statement(Exp *exp) : Node(), break_list(), cont_list()
 {
+    if(!exp->is_call && symbolTable.isFuncSymbolNameExist(exp->name))
+    {
+        output::errorUndef(yylineno, exp->name);
+        exit(1);
+    }
     /* check for the return type (has to be the same as exp)*/
     if (!symbolTable.checkTypes(symbolTable.getClosestReturnType(), exp->type))
     {

@@ -156,6 +156,8 @@ public:
     vector<LabelLocation> true_list;
     vector<LabelLocation> false_list;
     vector<LabelLocation> next_list;
+    bool is_call = false;
+    string name = "";
 
     Exp(); // for the newly created expressions in this assignment
 
@@ -164,6 +166,8 @@ public:
     Exp(const RawNumber *num, const string type);
 
     Exp(bool is_not, const Exp *exp);
+
+    string byteMask(string curr_reg);
 
     Exp(const Exp *left_exp, const BinOp *op, const Exp *right_exp);
 
