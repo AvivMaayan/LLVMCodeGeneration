@@ -123,9 +123,20 @@ Call: ID LPAREN ExpList RPAREN                                      {$$ = new Ca
                                                                                    dynamic_cast<ExpList*>($3));}
     | ID LPAREN RPAREN                                              {$$ = new Call(dynamic_cast<Id*>($1)->name);}
 
-ExpList: Exp                                                        {$$ = new ExpList(dynamic_cast<Exp*>($1));}
-       | Exp COMMA ExpList                                          {$$ = new ExpList(dynamic_cast<Exp*>($1),
-                                                                                      dynamic_cast<ExpList*>($3));}
+ExpList: Exp                                                        
+        {
+            dynamic_cast<Exp *>($1)->evaluateBoolToReg();
+            $$ = new ExpList(dynamic_cast<Exp*>($1));
+        }
+       | Exp 
+        {
+            dynamic_cast<Exp *>($1)->evaluateBoolToReg();
+        } 
+        COMMA ExpList                                          
+        {
+            $$ = new ExpList(dynamic_cast<Exp*>($1),
+            dynamic_cast<ExpList*>($4));
+        }
 
 Type: INT                                                           {$$ = ($1);}
     | BYTE                                                          {$$ = ($1);}
